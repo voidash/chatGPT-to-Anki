@@ -1121,19 +1121,27 @@ class ChatToAnkiExtension {
   }
   
   getBasePromptTemplate() {
-    return `Based on our conversation, create flashcards in CSV format. Analyze the conversation and create comprehensive flashcards covering key concepts, definitions, and important details.
+    return `Based on our conversation, I need you to create flashcards in CSV format. Please analyze the conversation and create comprehensive flashcards covering key concepts, definitions, and important details.
 
-CRITICAL REQUIREMENTS:
-- Output ONLY CSV data, no other text or formatting
+CRITICAL REQUIREMENTS AND FORMATTING INSTRUCTIONS:
+- Output ONLY CSV data in your response - no other text, explanations, or formatting
+- Do NOT use markdown code blocks (no backticks, no ```csv, no code formatting)
+- Do NOT add any introductory text like "Here are the flashcards:" or "Based on our conversation:"
+- Do NOT add any explanatory text before or after the CSV data
 - Format: Topic,Question,Answer
 - Each line must be a complete flashcard in CSV format
 - Questions should test understanding, not just recall
 - Answers should be concise but complete
 - Topics should be categorized (e.g., "Programming", "Science", "General")
+- Start your response immediately with the first CSV line
+- End your response with the last CSV line
 
-EXAMPLE FORMAT:
+IMPORTANT: Your entire response should be raw CSV data that can be directly imported into a spreadsheet. Do not wrap it in markdown code blocks or add any other formatting.
+
+EXAMPLE FORMAT (this is what your response should look like):
 Programming,What is a variable in programming?,A variable is a container that stores data values that can be changed during program execution
-Science,What is photosynthesis?,The process by which plants convert sunlight, carbon dioxide, and water into glucose and oxygen`;
+Science,What is photosynthesis?,The process by which plants convert sunlight, carbon dioxide, and water into glucose and oxygen
+General,What is the capital of France?,Paris`;
   }
   
   getCustomizationText(settings) {

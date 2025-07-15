@@ -103,7 +103,7 @@ class AnkiWorker {
         throw new Error('genanki-js library not loaded properly');
       }
       
-      console.log('Creating Anki package with genanki-js...');
+      console.log('Creating Anki package with topic-based decks...');
       
       // Create model with all required fields
       const model = new Model({
@@ -115,31 +115,47 @@ class AnkiWorker {
         css: cardTemplate.css
       });
       
-      // Create deck
-      const deck = new Deck(deckId, deckName);
-      
-      // Add cards to deck
+      // Group flashcards by topic
+      const topicGroups = {};
       flashcardData.forEach((flashcard, index) => {
-        const note = model.note([
-          flashcard.topic || 'General',
-          flashcard.question || '',
-          flashcard.answer || ''
-        ], ['chatgpt', 'flashcard', flashcard.topic?.toLowerCase() || 'general']);
-        
-        deck.addNote(note);
+        const topic = flashcard.topic || 'General';
+        if (!topicGroups[topic]) {
+          topicGroups[topic] = [];
+        }
+        topicGroups[topic].push(flashcard);
       });
       
-      // Generate package
+      // Create package
       const pkg = new Package();
-      pkg.addDeck(deck);
+      
+      // Create separate deck for each topic
+      Object.keys(topicGroups).forEach((topic, index) => {
+        const topicDeckName = topic; // Use topic name directly without prefix
+        const topicDeckId = deckId + index + 1; // Unique deck ID for each topic
+        const topicDeck = new Deck(topicDeckId, topicDeckName);
+        
+        // Add cards to this topic's deck
+        topicGroups[topic].forEach((flashcard) => {
+          const note = model.note([
+            flashcard.topic || 'General',
+            flashcard.question || '',
+            flashcard.answer || ''
+          ], ['chatgpt', 'flashcard', topic.toLowerCase()]);
+          
+          topicDeck.addNote(note);
+        });
+        
+        pkg.addDeck(topicDeck);
+        console.log(`Created deck "${topicDeckName}" with ${topicGroups[topic].length} cards`);
+      });
       
       // Download the file
       const downloadFilename = filename || `${deckName.replace(/[^a-zA-Z0-9]/g, '_')}.apkg`;
       
-      console.log('Generating .apkg file:', downloadFilename);
+      console.log('Generating .apkg file with topic-based decks:', downloadFilename);
       pkg.writeToFile(downloadFilename);
       
-      return { success: true, message: 'Package generated successfully with genanki-js' };
+      return { success: true, message: `Package generated with ${Object.keys(topicGroups).length} topic-based decks` };
     } catch (error) {
       console.error('Error generating package:', error);
       return { success: false, error: error.message };
