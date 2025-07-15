@@ -1,0 +1,35 @@
+{
+  "name": "chat-to-flashcards",
+  "version": "1.0.0",
+  "description": "Chrome extension to convert ChatGPT conversations into Anki flashcards",
+  "main": "background.js",
+  "scripts": {
+    "build": "npm run copy-deps",
+    "copy-deps": "cp node_modules/genanki/dist/genanki.min.js genanki-lib.js",
+    "dev": "npm run copy-deps && echo 'Extension ready for development'",
+    "package": "zip -r chat-to-flashcards.zip . -x node_modules/\\* .git/\\* *.md package*.json"
+  },
+  "keywords": [
+    "chrome-extension",
+    "anki",
+    "flashcards",
+    "chatgpt",
+    "education",
+    "study",
+    "learning"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "dependencies": {
+    "genanki": "^1.0.0"
+  },
+  "devDependencies": {},
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/chat-to-flashcards"
+  },
+  "bugs": {
+    "url": "https://github.com/yourusername/chat-to-flashcards/issues"
+  },
+  "homepage": "https://github.com/yourusername/chat-to-flashcards#readme"
+}

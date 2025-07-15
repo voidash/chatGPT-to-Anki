@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat to Anki Flashcards - Configuration</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background-color: #f8fafc;
+            color: #1f2937;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 40px 0;
+            background: linear-gradient(135deg, #10a37f 0%, #0d8f6b 100%);
+            color: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+        
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        
+        .tabs {
+            display: flex;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #e5e7eb;
+        }
+        
+        .tab {
+            padding: 15px 30px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            color: #6b7280;
+            transition: all 0.3s;
+            border-bottom: 3px solid transparent;
+        }
+        
+        .tab.active {
+            color: #10a37f;
+            border-bottom-color: #10a37f;
+        }
+        
+        .tab:hover {
+            color: #374151;
+        }
+        
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .section {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+        }
+        
+        .section h2 {
+            font-size: 1.8em;
+            margin-bottom: 20px;
+            color: #1f2937;
+        }
+        
+        .flashcard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .flashcard-item {
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 20px;
+            background: #f9fafb;
+            transition: all 0.3s;
+        }
+        
+        .flashcard-item:hover {
+            border-color: #10a37f;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        .flashcard-topic {
+            font-size: 14px;
+            color: #10a37f;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+        
+        .flashcard-question {
+            font-size: 16px;
+            font-weight: 500;
+            margin-bottom: 10px;
+            color: #1f2937;
+        }
+        
+        .flashcard-answer {
+            font-size: 14px;
+            color: #6b7280;
+            line-height: 1.4;
+        }
+        
+        .button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .button-primary {
+            background-color: #10a37f;
+            color: white;
+        }
+        
+        .button-primary:hover {
+            background-color: #0d8f6b;
+            transform: translateY(-1px);
+        }
+        
+        .button-secondary {
+            background-color: #f3f4f6;
+            color: #374151;
+            border: 1px solid #d1d5db;
+        }
+        
+        .button-secondary:hover {
+            background-color: #e5e7eb;
+        }
+        
+        .button-danger {
+            background-color: #ef4444;
+            color: white;
+        }
+        
+        .button-danger:hover {
+            background-color: #dc2626;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-item {
+            background: linear-gradient(135deg, #10a37f 0%, #0d8f6b 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 2.5em;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        
+        .csv-preview {
+            background: #f8fafc;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #6b7280;
+        }
+        
+        .empty-state svg {
+            width: 64px;
+            height: 64px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+        
+        .empty-state h3 {
+            font-size: 1.5em;
+            margin-bottom: 10px;
+        }
+        
+        .empty-state p {
+            font-size: 16px;
+            margin-bottom: 30px;
+        }
+        
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+        }
+        
+        .spinner {
+            width: 32px;
+            height: 32px;
+            border: 3px solid #e5e7eb;
+            border-top: 3px solid #10a37f;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+        }
+        
+        .setting-item {
+            background: #f9fafb;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+        }
+        
+        .setting-item h3 {
+            margin-bottom: 10px;
+            color: #1f2937;
+        }
+        
+        .setting-item p {
+            color: #6b7280;
+            margin-bottom: 15px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #374151;
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: #10a37f;
+            box-shadow: 0 0 0 3px rgba(16, 163, 127, 0.1);
+        }
+        
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .alert-success {
+            background-color: #dcfce7;
+            color: #166534;
+            border: 1px solid #bbf7d0;
+        }
+        
+        .alert-error {
+            background-color: #fef2f2;
+            color: #dc2626;
+            border: 1px solid #fecaca;
+        }
+        
+        .alert-info {
+            background-color: #dbeafe;
+            color: #1e40af;
+            border: 1px solid #bfdbfe;
+        }
+        
+        @media (max-width: 768px) {
+            .tabs {
+                flex-direction: column;
+            }
+            
+            .tab {
+                text-align: center;
+                padding: 12px;
+            }
+            
+            .button-group {
+                flex-direction: column;
+            }
+            
+            .button {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Chat to Anki Flashcards</h1>
+            <p>Manage your flashcard collections and export settings</p>
+        </div>
+        
+        <div class="tabs">
+            <button class="tab active" data-tab="overview">Overview</button>
+            <button class="tab" data-tab="flashcards">Flashcards</button>
+            <button class="tab" data-tab="export">Export</button>
+            <button class="tab" data-tab="settings">Settings</button>
+        </div>
+        
+        <!-- Overview Tab -->
+        <div id="overview" class="tab-content active">
+            <div class="section">
+                <h2>Statistics</h2>
+                <div class="stats">
+                    <div class="stat-item">
+                        <div class="stat-number" id="totalFlashcards">0</div>
+                        <div class="stat-label">Total Flashcards</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="totalChats">0</div>
+                        <div class="stat-label">Processed Chats</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="totalTopics">0</div>
+                        <div class="stat-label">Topics</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="lastUpdated">Never</div>
+                        <div class="stat-label">Last Updated</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="section">
+                <h2>Recent Activity</h2>
+                <div id="recentActivity">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Flashcards Tab -->
+        <div id="flashcards" class="tab-content">
+            <div class="section">
+                <h2>Your Flashcards</h2>
+                <div class="button-group">
+                    <button class="button button-secondary" id="refreshFlashcards">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M17.65,6.35C16.2,4.9 14.21,4 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20C15.73,20 18.84,17.45 19.73,14H17.65C16.83,16.33 14.61,18 12,18A6,6 0 0,1 6,12A6,6 0 0,1 12,6C13.66,6 15.14,6.69 16.22,7.78L13,11H20V4L17.65,6.35Z"/>
+                        </svg>
+                        Refresh
+                    </button>
+                    <button class="button button-danger" id="clearFlashcards">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M9,3V4H4V6H5V19A2,2 0 0,0 7,21H17A2,2 0 0,0 19,19V6H20V4H15V3H9M7,6H17V19H7V6M9,8V17H11V8H9M13,8V17H15V8H13Z"/>
+                        </svg>
+                        Clear All
+                    </button>
+                </div>
+                <div id="flashcardContainer">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Export Tab -->
+        <div id="export" class="tab-content">
+            <div class="section">
+                <h2>Export Options</h2>
+                <div class="settings-grid">
+                    <div class="setting-item">
+                        <h3>CSV Export</h3>
+                        <p>Export your flashcards as a CSV file for manual processing</p>
+                        <button class="button button-secondary" id="exportCSV">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
+                            </svg>
+                            Export CSV
+                        </button>
+                    </div>
+                    
+                    <div class="setting-item">
+                        <h3>Anki Package (.apkg)</h3>
+                        <p>Create an Anki package file for direct import into Anki</p>
+                        <button class="button button-primary" id="exportAnki">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4M12,7A5,5 0 0,0 7,12A5,5 0 0,0 12,17A5,5 0 0,0 17,12A5,5 0 0,0 12,7M12,9A3,3 0 0,1 15,12A3,3 0 0,1 12,15A3,3 0 0,1 9,12A3,3 0 0,1 12,9Z"/>
+                            </svg>
+                            Create Anki Package
+                        </button>
+                    </div>
+                    
+                    <div class="setting-item">
+                        <h3>AnkiWeb Sync</h3>
+                        <p>Sync directly to your AnkiWeb account</p>
+                        <div class="form-group">
+                            <label class="form-label">AnkiWeb Username</label>
+                            <input type="text" class="form-input" id="ankiUsername" placeholder="Enter your AnkiWeb username">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Password</label>
+                            <input type="password" class="form-input" id="ankiPassword" placeholder="Enter your password">
+                        </div>
+                        <button class="button button-primary" id="syncAnkiWeb">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12,18A6,6 0 0,1 6,12A6,6 0 0,1 12,6A6,6 0 0,1 18,12A6,6 0 0,1 12,18M20,12A8,8 0 0,0 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20A8,8 0 0,0 20,12Z"/>
+                            </svg>
+                            Sync to AnkiWeb
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="section">
+                <h2>CSV Preview</h2>
+                <div id="csvPreview" class="csv-preview">
+                    No data available. Process some chats first.
+                </div>
+            </div>
+            
+        </div>
+        
+        <!-- Settings Tab -->
+        <div id="settings" class="tab-content">
+            <div class="section">
+                <h2>Extension Settings</h2>
+                <div class="settings-grid">
+                    <div class="setting-item">
+                        <h3>Flashcard Generation</h3>
+                        <p>Customize how flashcards are generated from your chats</p>
+                        <div class="form-group">
+                            <label class="form-label">Max Flashcards per Chat</label>
+                            <input type="number" class="form-input" id="maxFlashcards" value="20" min="5" max="100">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Default Topic Category</label>
+                            <input type="text" class="form-input" id="defaultTopic" value="General" placeholder="e.g., Programming, Science">
+                        </div>
+                    </div>
+                    
+                    <div class="setting-item">
+                        <h3>Chat Detection</h3>
+                        <p>Configure how the extension detects chats</p>
+                        <div class="form-group">
+                            <label class="form-label">Detection Strategy</label>
+                            <select class="form-input" id="detectionStrategy">
+                                <option value="auto">Auto-detect (Recommended)</option>
+                                <option value="data-testid">Data attributes only</option>
+                                <option value="aria-labels">ARIA labels only</option>
+                                <option value="structural">Structural patterns</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="setting-item">
+                        <h3>Export Settings</h3>
+                        <p>Configure default export options</p>
+                        <div class="form-group">
+                            <label class="form-label">Default Export Format</label>
+                            <select class="form-input" id="defaultExportFormat">
+                                <option value="csv">CSV</option>
+                                <option value="anki">Anki Package</option>
+                                <option value="both">Both</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Anki Deck Name</label>
+                            <input type="text" class="form-input" id="ankiDeckName" value="ChatGPT Flashcards" placeholder="Enter deck name">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="button-group">
+                    <button class="button button-primary" id="saveSettings">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M15,9H5V5H15M12,19A3,3 0 0,1 9,16A3,3 0 0,1 12,13A3,3 0 0,1 15,16A3,3 0 0,1 12,19M17,3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V7L17,3Z"/>
+                        </svg>
+                        Save Settings
+                    </button>
+                    <button class="button button-secondary" id="resetSettings">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12,3A9,9 0 0,0 3,12A9,9 0 0,0 12,21A9,9 0 0,0 21,12A9,9 0 0,0 12,3M12,5A7,7 0 0,1 19,12A7,7 0 0,1 12,19A7,7 0 0,1 5,12A7,7 0 0,1 12,5M12.5,8L11,13.5L10.5,15L9,10.5L8.5,9L10,14.5L10.5,16L12,10.5L12.5,8Z"/>
+                        </svg>
+                        Reset to Defaults
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Required dependencies for genanki-js -->
+    <script src="js/sql/sql-wasm.js"></script>
+    <script src="jszip.min.js"></script>
+    <script src="FileSaver.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/krmanik/genanki-js/dist/genanki.js"></script>
+    <script src="genanki.js"></script>
+    <script src="config.js"></script>
+</body>
+</html>

@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Genanki-js Test Suite - Chat to Anki Flashcards</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #10a37f 0%, #0d8f6b 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+        
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        
+        .test-section {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .test-section h2 {
+            color: #10a37f;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+            border-bottom: 2px solid #e5e7eb;
+            padding-bottom: 10px;
+        }
+        
+        .test-section p {
+            margin-bottom: 20px;
+            color: #6b7280;
+            font-size: 1.1em;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #374151;
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+            font-family: inherit;
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: #10a37f;
+            box-shadow: 0 0 0 3px rgba(16, 163, 127, 0.1);
+        }
+        
+        .csv-test-textarea {
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            resize: vertical;
+            min-height: 120px;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+        
+        .button {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            font-family: inherit;
+        }
+        
+        .button-primary {
+            background: #10a37f;
+            color: white;
+        }
+        
+        .button-primary:hover {
+            background: #0d8f6b;
+            transform: translateY(-2px);
+        }
+        
+        .button-secondary {
+            background: #f3f4f6;
+            color: #374151;
+            border: 2px solid #e5e7eb;
+        }
+        
+        .button-secondary:hover {
+            background: #e5e7eb;
+            transform: translateY(-2px);
+        }
+        
+        .button-danger {
+            background: #ef4444;
+            color: white;
+        }
+        
+        .button-danger:hover {
+            background: #dc2626;
+            transform: translateY(-2px);
+        }
+        
+        .status-message {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 14px;
+            display: none;
+            font-weight: 500;
+        }
+        
+        .status-message.success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+            display: block;
+        }
+        
+        .status-message.error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fca5a5;
+            display: block;
+        }
+        
+        .status-message.info {
+            background: #dbeafe;
+            color: #1e40af;
+            border: 1px solid #93c5fd;
+            display: block;
+        }
+        
+        .code-example {
+            background: #f8fafc;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            overflow-x: auto;
+        }
+        
+        .test-results {
+            background: #f8fafc;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .tabs {
+            display: flex;
+            border-bottom: 2px solid #e5e7eb;
+            margin-bottom: 20px;
+        }
+        
+        .tab {
+            padding: 15px 30px;
+            cursor: pointer;
+            background: none;
+            border: none;
+            font-size: 16px;
+            font-weight: 600;
+            color: #6b7280;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+        }
+        
+        .tab.active {
+            color: #10a37f;
+            border-bottom-color: #10a37f;
+        }
+        
+        .tab:hover {
+            color: #10a37f;
+            background: #f9fafb;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .example-box {
+            background: #f0f9ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        
+        .example-box h4 {
+            color: #1e40af;
+            margin-bottom: 10px;
+        }
+        
+        .example-box pre {
+            background: white;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 13px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Genanki-js Test Suite</h1>
+            <p>Test and validate Anki flashcard generation functionality</p>
+        </div>
+        
+        <div class="tabs">
+            <button class="tab active" data-tab="csv-test">CSV Test</button>
+            <button class="tab" data-tab="api-test">API Test</button>
+            <button class="tab" data-tab="validation-test">Validation Test</button>
+        </div>
+        
+        <!-- CSV Test Tab -->
+        <div id="csv-test" class="tab-content active">
+            <div class="test-section">
+                <h2>CSV Test Tool</h2>
+                <p>Test the Anki package generation by pasting CSV content below. Format: Topic,Question,Answer</p>
+                
+                <div class="example-box">
+                    <h4>Example CSV Format:</h4>
+                    <pre>Math,What is 2 + 2?,4
+Science,What is H2O?,Water
+History,When did WWII end?,1945
+Programming,What does API stand for?,Application Programming Interface</pre>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">CSV Content</label>
+                    <textarea 
+                        id="csvTestInput" 
+                        class="form-input csv-test-textarea" 
+                        placeholder="Paste your CSV content here..."
+                        rows="10">
+                    </textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Deck Name</label>
+                    <input type="text" id="csvTestDeckName" class="form-input" value="CSV Test Deck" placeholder="Enter deck name">
+                </div>
+                
+                <div class="button-group">
+                    <button class="button button-primary" id="csvTestDownload">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M5,20H19V18H5M19,9H15V3H9V9H5L12,16L19,9Z"/>
+                        </svg>
+                        Generate Anki Package
+                    </button>
+                    <button class="button button-secondary" id="csvTestValidate">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z"/>
+                        </svg>
+                        Validate CSV
+                    </button>
+                    <button class="button button-secondary" id="csvTestClear">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z"/>
+                        </svg>
+                        Clear
+                    </button>
+                </div>
+                
+                <div id="csvTestStatus" class="status-message"></div>
+            </div>
+        </div>
+        
+        <!-- API Test Tab -->
+        <div id="api-test" class="tab-content">
+            <div class="test-section">
+                <h2>API Test</h2>
+                <p>Test the genanki-js API functionality directly</p>
+                
+                <div class="button-group">
+                    <button class="button button-primary" id="testSqlInit">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12,2C6.48,2 2,6.48 2,12C2,17.52 6.48,22 12,22C17.52,22 22,17.52 22,12C22,6.48 17.52,2 12,2M12,20C7.59,20 4,16.41 4,12C4,7.59 7.59,4 12,4C16.41,4 20,7.59 20,12C20,16.41 16.41,20 12,20M12,6A6,6 0 0,0 6,12A6,6 0 0,0 12,18A6,6 0 0,0 18,12A6,6 0 0,0 12,6M12,16A4,4 0 0,1 8,12A4,4 0 0,1 12,8A4,4 0 0,1 16,12A4,4 0 0,1 12,16Z"/>
+                        </svg>
+                        Test SQL Initialization
+                    </button>
+                    <button class="button button-secondary" id="testModelCreation">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M19,3H5C3.89,3 3,3.89 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.89 20.1,3 19,3M19,19H5V5H19V19Z"/>
+                        </svg>
+                        Test Model Creation
+                    </button>
+                    <button class="button button-secondary" id="testPackageGeneration">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z"/>
+                        </svg>
+                        Test Package Generation
+                    </button>
+                    <button class="button button-danger" id="runAllTests">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M8,5.14V19.14L19,12.14L8,5.14Z"/>
+                        </svg>
+                        Run All Tests
+                    </button>
+                </div>
+                
+                <div id="apiTestResults" class="test-results"></div>
+            </div>
+        </div>
+        
+        <!-- Validation Test Tab -->
+        <div id="validation-test" class="tab-content">
+            <div class="test-section">
+                <h2>Validation Test</h2>
+                <p>Test flashcard data validation with various scenarios</p>
+                
+                <div class="button-group">
+                    <button class="button button-primary" id="testValidData">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z"/>
+                        </svg>
+                        Test Valid Data
+                    </button>
+                    <button class="button button-secondary" id="testInvalidData">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"/>
+                        </svg>
+                        Test Invalid Data
+                    </button>
+                    <button class="button button-secondary" id="testEdgeCases">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12,2C6.48,2 2,6.48 2,12C2,17.52 6.48,22 12,22C17.52,22 22,17.52 22,12C22,6.48 17.52,2 12,2M13,19H11V17H13V19M13,15H11V7H13V15Z"/>
+                        </svg>
+                        Test Edge Cases
+                    </button>
+                </div>
+                
+                <div id="validationTestResults" class="test-results"></div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Required dependencies for genanki-js -->
+    <!-- Use CDN versions to avoid CORS issues when testing locally -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/krmanik/genanki-js/dist/genanki.js"></script>
+    <script src="../genanki.js"></script>
+    <script src="test.js"></script>
+</body>
+</html>
