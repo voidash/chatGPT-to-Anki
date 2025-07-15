@@ -135,18 +135,176 @@ class ConfigManager {
     }
     
     const recentItems = this.flashcardData.slice(-5).reverse();
-    const activityHtml = recentItems.map(item => {
-      const flashcardCount = item.csvData ? item.csvData.split('\n').filter(line => line.trim()).length : 0;
+    const activityHtml = recentItems.map((item, index) => {
+      const flashcardCount = item.flashcardCount || (item.csvData ? item.csvData.split('\n').filter(line => line.trim()).length : 0);
+      const chatName = item.chatName || `Chat ${item.chatId}`;
+      const timestamp = item.timestamp ? new Date(item.timestamp).toLocaleDateString() : 'Recently';
+      const originalIndex = this.flashcardData.findIndex(data => data.chatId === item.chatId);
+      
       return `
-        <div class="flashcard-item">
-          <div class="flashcard-topic">Chat ${item.chatId}</div>
+        <div class="flashcard-item chat-item" data-chat-id="${item.chatId}" data-chat-index="${originalIndex}">
+          <div class="flashcard-topic">${this.escapeHtml(chatName)}</div>
           <div class="flashcard-question">${flashcardCount} flashcards generated</div>
-          <div class="flashcard-answer">Last updated: ${new Date().toLocaleDateString()}</div>
+          <div class="flashcard-answer">Exported: ${timestamp}</div>
+          <div class="chat-actions">
+            <button class="chat-action-btn" onclick="window.open('${item.chatUrl}', '_blank')" title="Open chat">
+              <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M14,3V5H17.59L7.76,14.83L9.17,16.24L19,6.41V10H21V3M19,19H5V5H12V3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V12H19V19Z"/>
+              </svg>
+            </button>
+          </div>
         </div>
       `;
     }).join('');
     
     activityContainer.innerHTML = `<div class="flashcard-grid">${activityHtml}</div>`;
+    
+    // Add click handlers for chat items
+    this.setupChatItemHandlers();
+  }
+  
+  setupChatItemHandlers() {
+    const chatItems = document.querySelectorAll('.chat-item');
+    
+    chatItems.forEach(item => {
+      item.addEventListener('click', (e) => {
+        // Don't trigger if clicking on the action button
+        if (e.target.closest('.chat-action-btn')) return;
+        
+        const chatId = item.getAttribute('data-chat-id');
+        const chatIndex = parseInt(item.getAttribute('data-chat-index'));
+        
+        this.showChatFlashcards(chatId, chatIndex);
+      });
+    });
+  }
+  
+  showChatFlashcards(chatId, chatIndex) {
+    // Switch to flashcards tab
+    document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+    
+    document.querySelector('[data-tab="flashcards"]').classList.add('active');
+    document.getElementById('flashcards').classList.add('active');
+    
+    // Set up chat-specific view
+    this.currentChatView = { chatId, chatIndex };
+    this.loadChatSpecificFlashcards(chatIndex);
+  }
+  
+  loadChatSpecificFlashcards(chatIndex) {
+    const chatData = this.flashcardData[chatIndex];
+    if (!chatData) return;
+    
+    // Update the flashcard header to show we're viewing a specific chat
+    const flashcardHeader = document.querySelector('.flashcard-header');
+    if (flashcardHeader) {
+      const chatName = chatData.chatName || `Chat ${chatData.chatId}`;
+      flashcardHeader.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <h3>${this.escapeHtml(chatName)}</h3>
+          <button class="button button-secondary" onclick="configManager.showAllFlashcards()" style="padding: 5px 10px; font-size: 12px;">
+            Show All Flashcards
+          </button>
+        </div>
+        <div class="flashcard-count" id="flashcardCount">Loading...</div>
+      `;
+    }
+    
+    // Parse flashcards for this specific chat
+    const flashcards = [];
+    if (chatData.csvData) {
+      // Try both \n and \\n for line splitting
+      let lines = chatData.csvData.split('\n').filter(line => line.trim());
+      if (lines.length <= 1) {
+        lines = chatData.csvData.split('\\n').filter(line => line.trim());
+      }
+      
+      lines.forEach((line, lineIndex) => {
+        const parts = this.parseCSVLine(line);
+        if (parts.length >= 3) {
+          flashcards.push({
+            topic: parts[0],
+            question: parts[1],
+            answer: parts[2],
+            chatIndex: chatIndex,
+            lineIndex: lineIndex
+          });
+        }
+      });
+    }
+    
+    // Update count
+    const countElement = document.getElementById('flashcardCount');
+    if (countElement) {
+      countElement.textContent = `${flashcards.length} flashcard${flashcards.length === 1 ? '' : 's'}`;
+    }
+    
+    // Hide topic sidebar and show flashcards in full width
+    const topicSidebar = document.querySelector('.topic-sidebar');
+    const flashcardContent = document.querySelector('.flashcard-content');
+    
+    if (topicSidebar) topicSidebar.style.display = 'none';
+    if (flashcardContent) flashcardContent.style.width = '100%';
+    
+    // Display flashcards
+    const container = document.getElementById('flashcardContainer');
+    if (flashcards.length === 0) {
+      container.innerHTML = `
+        <div class="empty-state">
+          <p>No flashcards found in this chat</p>
+        </div>
+      `;
+      return;
+    }
+    
+    const flashcardHtml = flashcards.map((card, index) => `
+      <div class="flashcard-item" data-card-index="${index}">
+        <button class="edit-card-btn" data-chat-index="${card.chatIndex}" data-line-index="${card.lineIndex}" title="Edit flashcard">
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <path d="M20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18,2.9 17.35,2.9 16.96,3.29L15.12,5.12L18.87,8.87M3,17.25V21H6.75L17.81,9.93L14.06,6.18L3,17.25Z"/>
+          </svg>
+        </button>
+        <button class="delete-card-btn" data-chat-index="${card.chatIndex}" data-line-index="${card.lineIndex}" title="Delete flashcard">
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"/>
+          </svg>
+        </button>
+        <div class="flashcard-topic">${this.escapeHtml(card.topic)}</div>
+        <div class="flashcard-question">${this.escapeHtml(card.question)}</div>
+        <div class="flashcard-answer">${this.escapeHtml(card.answer)}</div>
+      </div>
+    `).join('');
+    
+    container.innerHTML = `<div class="flashcard-grid">${flashcardHtml}</div>`;
+    
+    // Add event listeners for delete and edit buttons
+    this.setupDeleteButtons();
+    this.setupEditButtons();
+  }
+  
+  showAllFlashcards() {
+    // Reset to normal flashcard view
+    this.currentChatView = null;
+    
+    // Show topic sidebar and reset flashcard content width
+    const topicSidebar = document.querySelector('.topic-sidebar');
+    const flashcardContent = document.querySelector('.flashcard-content');
+    
+    if (topicSidebar) topicSidebar.style.display = 'block';
+    if (flashcardContent) flashcardContent.style.width = '';
+    
+    // Reset header
+    const flashcardHeader = document.querySelector('.flashcard-header');
+    if (flashcardHeader) {
+      flashcardHeader.innerHTML = `
+        <h3 id="selectedTopicTitle">All Flashcards</h3>
+        <div class="flashcard-count" id="flashcardCount">0 flashcards</div>
+      `;
+    }
+    
+    // Load normal flashcard view
+    this.loadFlashcards();
   }
   
   loadFlashcards() {

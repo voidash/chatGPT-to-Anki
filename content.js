@@ -397,7 +397,11 @@ class ChatToAnkiExtension {
         if (csvData) {
           flashcardData.push({
             chatId: chat.id,
-            csvData: csvData
+            chatName: chat.name || `Chat ${chat.id}`,
+            chatUrl: chat.url || window.location.href,
+            csvData: csvData,
+            timestamp: new Date().toISOString(),
+            flashcardCount: csvData.split('\n').filter(line => line.trim()).length
           });
           console.log(`Successfully processed chat ${chat.id}`);
         } else {
@@ -966,10 +970,24 @@ class ChatToAnkiExtension {
     return csvLines.join('\n');
   }
   
-  async storeFlashcardData(flashcardData) {
+  async storeFlashcardData(newFlashcardData) {
     return new Promise((resolve) => {
-      chrome.storage.local.set({ flashcardData: flashcardData }, () => {
-        resolve();
+      // Get existing data first
+      chrome.storage.local.get(['flashcardData'], (result) => {
+        let existingData = result.flashcardData || [];
+        
+        // Filter out any existing data with the same chatId to avoid duplicates
+        const existingChatIds = new Set(existingData.map(item => item.chatId));
+        const uniqueNewData = newFlashcardData.filter(item => !existingChatIds.has(item.chatId));
+        
+        // Append new data to existing data
+        const allData = [...existingData, ...uniqueNewData];
+        
+        console.log(`Storing ${uniqueNewData.length} new chats. Total: ${allData.length} chats`);
+        
+        chrome.storage.local.set({ flashcardData: allData }, () => {
+          resolve();
+        });
       });
     });
   }
