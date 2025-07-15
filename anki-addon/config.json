@@ -1,0 +1,8 @@
+{
+  "check_interval": 5,
+  "processed_action": "move",
+  "show_notifications": true,
+  "processed_folder": "processed",
+  "secret_key": "chatgpt-anki-extension-2024",
+  "downloads_folder": null
+}

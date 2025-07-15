@@ -1,0 +1,12 @@
+{
+  "package": "chatgpt_anki_sync",
+  "name": "ChatGPT Anki Sync",
+  "mod": 1700000000,
+  "min_point_version": 45,
+  "max_point_version": 231000,
+  "branch_index": 0,
+  "description": "Automatically imports flashcards from ChatGPT Chrome Extension",
+  "author": "ChatGPT Extension Team",
+  "conflicts": [],
+  "targets": ["desktop"]
+}
