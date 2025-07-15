@@ -50,12 +50,16 @@
   background-color: white;
   border-radius: 12px;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-  max-width: 600px;
+  max-width: 700px;
   width: 90%;
-  max-height: 80vh;
+  max-height: 85vh;
   overflow: hidden;
   display: flex;
   flex-direction: column;
+}
+
+.anki-preview-modal {
+  max-width: 800px;
 }
 
 /* Dark mode support */
@@ -299,6 +303,124 @@
   .anki-chat-list::-webkit-scrollbar-thumb:hover {
     background: #9ca3af;
   }
+}
+
+/* Prompt Customization Styles */
+.anki-section {
+  margin-bottom: 30px;
+}
+
+.anki-section h3 {
+  margin: 0 0 15px 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #111827;
+  border-bottom: 2px solid #e5e7eb;
+  padding-bottom: 8px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .anki-section h3 {
+    color: white;
+    border-bottom-color: #4b5563;
+  }
+}
+
+.anki-form-group {
+  margin-bottom: 20px;
+}
+
+.anki-form-group label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 500;
+  color: #374151;
+  font-size: 14px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .anki-form-group label {
+    color: #d1d5db;
+  }
+}
+
+.anki-form-group input,
+.anki-form-group select,
+.anki-form-group textarea {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+  background-color: white;
+  color: #111827;
+  transition: border-color 0.2s;
+}
+
+.anki-form-group input:focus,
+.anki-form-group select:focus,
+.anki-form-group textarea:focus {
+  outline: none;
+  border-color: #10a37f;
+  box-shadow: 0 0 0 3px rgba(16, 163, 127, 0.1);
+}
+
+@media (prefers-color-scheme: dark) {
+  .anki-form-group input,
+  .anki-form-group select,
+  .anki-form-group textarea {
+    background-color: #374151;
+    color: white;
+    border-color: #4b5563;
+  }
+}
+
+.anki-form-group small {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+@media (prefers-color-scheme: dark) {
+  .anki-form-group small {
+    color: #9ca3af;
+  }
+}
+
+.anki-form-group textarea {
+  resize: vertical;
+  min-height: 60px;
+}
+
+.anki-prompt-preview {
+  background-color: #f8fafc;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 16px;
+  max-height: 400px;
+  overflow-y: auto;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+@media (prefers-color-scheme: dark) {
+  .anki-prompt-preview {
+    background-color: #1f2937;
+    border-color: #4b5563;
+    color: #d1d5db;
+  }
+}
+
+.anki-prompt-preview pre {
+  margin: 0;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.anki-chat-list {
+  max-height: 200px;
 }
 
 /* Responsive design */

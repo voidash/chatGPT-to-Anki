@@ -53,6 +53,16 @@ if (window.chatToAnki) {
                         } else {
                             console.log('ℹ No response detected (send a message first)');
                         }
+                        
+                        // Test prompt generation
+                        console.log('\n--- Testing Prompt Generation ---');
+                        try {
+                            const prompt = window.chatToAnki.generateCustomPrompt();
+                            console.log('✓ Prompt generation working');
+                            console.log('Sample prompt (first 200 chars):', prompt.substring(0, 200) + '...');
+                        } catch (error) {
+                            console.log('✗ Prompt generation failed:', error.message);
+                        }
                     }, 2000);
                 } else {
                     console.log('✗ Page may have reloaded - extension not found');

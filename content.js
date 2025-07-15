@@ -236,24 +236,82 @@ class ChatToAnkiExtension {
     this.modal.innerHTML = `
       <div class="anki-modal-content">
         <div class="anki-modal-header">
-          <h2>Select Chats for Anki Export</h2>
+          <h2>Create Anki Flashcards</h2>
           <button id="anki-modal-close" class="anki-close-btn">&times;</button>
         </div>
         <div class="anki-modal-body">
-          <div class="anki-chat-list">
-            ${chats.map(chat => `
-              <div class="anki-chat-item">
-                <label class="anki-chat-label">
-                  <input type="checkbox" class="anki-chat-checkbox" data-chat-id="${chat.id}" data-chat-url="${chat.url}">
-                  <span class="anki-chat-title">${this.escapeHtml(chat.title)}</span>
-                </label>
+          <div class="anki-section">
+            <h3>Select Chats</h3>
+            <div class="anki-chat-list">
+              ${chats.map(chat => `
+                <div class="anki-chat-item">
+                  <label class="anki-chat-label">
+                    <input type="checkbox" class="anki-chat-checkbox" data-chat-id="${chat.id}" data-chat-url="${chat.url}">
+                    <span class="anki-chat-title">${this.escapeHtml(chat.title)}</span>
+                  </label>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+          
+          <div class="anki-section">
+            <h3>Customize Flashcard Generation</h3>
+            <div class="anki-prompt-options">
+              <div class="anki-form-group">
+                <label for="anki-topic-focus">Topic Focus (optional)</label>
+                <input type="text" id="anki-topic-focus" placeholder="e.g., JavaScript functions, Machine Learning concepts, History dates">
+                <small>Specify what topics you want to focus on from the conversation</small>
               </div>
-            `).join('')}
+              
+              <div class="anki-form-group">
+                <label for="anki-question-type">Question Type</label>
+                <select id="anki-question-type">
+                  <option value="mixed">Mixed (Definitions, Examples, Applications)</option>
+                  <option value="definitions">Definitions only</option>
+                  <option value="examples">Examples and use cases</option>
+                  <option value="applications">Practical applications</option>
+                  <option value="comparisons">Comparisons and differences</option>
+                  <option value="steps">Step-by-step processes</option>
+                  <option value="facts">Facts and details</option>
+                </select>
+              </div>
+              
+              <div class="anki-form-group">
+                <label for="anki-difficulty">Difficulty Level</label>
+                <select id="anki-difficulty">
+                  <option value="mixed">Mixed levels</option>
+                  <option value="beginner">Beginner friendly</option>
+                  <option value="intermediate">Intermediate</option>
+                  <option value="advanced">Advanced</option>
+                </select>
+              </div>
+              
+              <div class="anki-form-group">
+                <label for="anki-card-count">Number of Cards</label>
+                <select id="anki-card-count">
+                  <option value="auto">Auto (5-20 based on content)</option>
+                  <option value="5">5 cards</option>
+                  <option value="10">10 cards</option>
+                  <option value="15">15 cards</option>
+                  <option value="20">20 cards</option>
+                  <option value="25">25 cards</option>
+                </select>
+              </div>
+              
+              <div class="anki-form-group">
+                <label for="anki-custom-instructions">Additional Instructions (optional)</label>
+                <textarea id="anki-custom-instructions" rows="3" placeholder="e.g., Focus on code examples, Include mnemonics, Use simple language"></textarea>
+              </div>
+              
+              <div class="anki-form-group">
+                <button id="anki-preview-prompt" class="anki-btn anki-btn-secondary">Preview Prompt</button>
+              </div>
+            </div>
           </div>
         </div>
         <div class="anki-modal-footer">
-          <button id="anki-select-all" class="anki-btn anki-btn-secondary">Select All</button>
-          <button id="anki-export-selected" class="anki-btn anki-btn-primary">Export Selected</button>
+          <button id="anki-select-all" class="anki-btn anki-btn-secondary">Select All Chats</button>
+          <button id="anki-export-selected" class="anki-btn anki-btn-primary">Generate Flashcards</button>
         </div>
       </div>
     `;
@@ -264,6 +322,7 @@ class ChatToAnkiExtension {
     document.getElementById('anki-modal-close').addEventListener('click', () => this.closeModal());
     document.getElementById('anki-select-all').addEventListener('click', () => this.selectAllChats());
     document.getElementById('anki-export-selected').addEventListener('click', () => this.exportSelectedChats());
+    document.getElementById('anki-preview-prompt').addEventListener('click', () => this.previewPrompt());
     
     // Close modal when clicking outside
     this.modal.addEventListener('click', (e) => {
@@ -469,19 +528,7 @@ class ChatToAnkiExtension {
       throw new Error('Could not find input box');
     }
     
-    const prompt = `Based on our conversation, create flashcards in CSV format. Analyze the main topics discussed and create comprehensive flashcards covering key concepts, definitions, and important details.
-
-Requirements:
-- Output ONLY CSV data, no other text
-- Format: Topic,Question,Answer
-- Create 5-20 flashcards depending on content
-- Questions should test understanding, not just recall
-- Answers should be concise but complete
-- Topics should be categorized (e.g., "Programming", "Science", "General")
-
-Example format:
-Programming,What is a variable in programming?,A variable is a container that stores data values that can be changed during program execution
-Science,What is photosynthesis?,The process by which plants convert sunlight, carbon dioxide, and water into glucose and oxygen`;
+    const prompt = this.generateCustomPrompt();
     
     // Clear input and add prompt gently
     this.gentleClearElement(inputBox);
@@ -983,6 +1030,129 @@ Science,What is photosynthesis?,The process by which plants convert sunlight, ca
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+  }
+  
+  generateCustomPrompt() {
+    const userSettings = this.getUserPromptSettings();
+    const basePrompt = this.getBasePromptTemplate();
+    const customization = this.getCustomizationText(userSettings);
+    
+    return `${basePrompt}\n\n${customization}`;
+  }
+  
+  getUserPromptSettings() {
+    // Get settings from modal if it exists, otherwise use defaults
+    const settings = {
+      topicFocus: '',
+      questionType: 'mixed',
+      difficulty: 'mixed',
+      cardCount: 'auto',
+      customInstructions: ''
+    };
+    
+    if (document.getElementById('anki-topic-focus')) {
+      settings.topicFocus = document.getElementById('anki-topic-focus').value.trim();
+      settings.questionType = document.getElementById('anki-question-type').value;
+      settings.difficulty = document.getElementById('anki-difficulty').value;
+      settings.cardCount = document.getElementById('anki-card-count').value;
+      settings.customInstructions = document.getElementById('anki-custom-instructions').value.trim();
+    }
+    
+    return settings;
+  }
+  
+  getBasePromptTemplate() {
+    return `Based on our conversation, create flashcards in CSV format. Analyze the conversation and create comprehensive flashcards covering key concepts, definitions, and important details.
+
+CRITICAL REQUIREMENTS:
+- Output ONLY CSV data, no other text or formatting
+- Format: Topic,Question,Answer
+- Each line must be a complete flashcard in CSV format
+- Questions should test understanding, not just recall
+- Answers should be concise but complete
+- Topics should be categorized (e.g., "Programming", "Science", "General")
+
+EXAMPLE FORMAT:
+Programming,What is a variable in programming?,A variable is a container that stores data values that can be changed during program execution
+Science,What is photosynthesis?,The process by which plants convert sunlight, carbon dioxide, and water into glucose and oxygen`;
+  }
+  
+  getCustomizationText(settings) {
+    let customization = 'CUSTOMIZATION INSTRUCTIONS:\n';
+    
+    // Topic focus
+    if (settings.topicFocus) {
+      customization += `- Focus specifically on: ${settings.topicFocus}\n`;
+    }
+    
+    // Question type
+    const questionTypes = {
+      'mixed': 'Create a mix of definitions, examples, and applications',
+      'definitions': 'Focus on definitions and "What is..." questions',
+      'examples': 'Focus on examples and use cases',
+      'applications': 'Focus on practical applications and "How to..." questions',
+      'comparisons': 'Focus on comparisons and differences between concepts',
+      'steps': 'Focus on step-by-step processes and procedures',
+      'facts': 'Focus on facts, details, and specific information'
+    };
+    customization += `- Question style: ${questionTypes[settings.questionType]}\n`;
+    
+    // Difficulty level
+    const difficultyLevels = {
+      'mixed': 'Mix of beginner, intermediate, and advanced questions',
+      'beginner': 'Use simple language and basic concepts',
+      'intermediate': 'Moderate complexity with some technical terms',
+      'advanced': 'Complex questions with technical depth'
+    };
+    customization += `- Difficulty level: ${difficultyLevels[settings.difficulty]}\n`;
+    
+    // Card count
+    if (settings.cardCount === 'auto') {
+      customization += '- Create 5-20 flashcards based on conversation content\n';
+    } else {
+      customization += `- Create exactly ${settings.cardCount} flashcards\n`;
+    }
+    
+    // Custom instructions
+    if (settings.customInstructions) {
+      customization += `- Additional instructions: ${settings.customInstructions}\n`;
+    }
+    
+    return customization;
+  }
+  
+  previewPrompt() {
+    const prompt = this.generateCustomPrompt();
+    
+    // Create preview modal
+    const previewModal = document.createElement('div');
+    previewModal.className = 'anki-modal-overlay';
+    previewModal.innerHTML = `
+      <div class="anki-modal-content anki-preview-modal">
+        <div class="anki-modal-header">
+          <h2>Prompt Preview</h2>
+          <button class="anki-close-btn" onclick="this.closest('.anki-modal-overlay').remove()">&times;</button>
+        </div>
+        <div class="anki-modal-body">
+          <div class="anki-prompt-preview">
+            <pre>${this.escapeHtml(prompt)}</pre>
+          </div>
+        </div>
+        <div class="anki-modal-footer">
+          <button class="anki-btn anki-btn-secondary" onclick="this.closest('.anki-modal-overlay').remove()">Close</button>
+          <button class="anki-btn anki-btn-primary" onclick="navigator.clipboard.writeText(\`${prompt.replace(/`/g, '\\`')}\`)">Copy to Clipboard</button>
+        </div>
+      </div>
+    `;
+    
+    document.body.appendChild(previewModal);
+    
+    // Close when clicking outside
+    previewModal.addEventListener('click', (e) => {
+      if (e.target === previewModal) {
+        previewModal.remove();
+      }
+    });
   }
   
   // Debug functions for testing
