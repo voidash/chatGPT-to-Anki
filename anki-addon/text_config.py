@@ -14,110 +14,42 @@ def show_text_config():
         # Show current settings
         current_settings = config.get_all()
         
-        def show_current_settings():
-            """Display current settings"""
-            settings_info = f"""Current ChatGPT Sync Settings:
+        # Display current settings in a nice format
+        settings_info = f"""Current ChatGPT Sync Settings:
 
-Check Interval: {current_settings['check_interval']} seconds
-Downloads Folder: {current_settings['downloads_folder']}
-Processed Action: {current_settings['processed_action']}
-Show Notifications: {current_settings['show_notifications']}
-Processed Folder: {current_settings['processed_folder']}
+📁 Downloads Folder: {current_settings['downloads_folder']}
+⏰ Check Interval: {current_settings['check_interval']} seconds
+📂 Processed Action: {current_settings['processed_action']}
+🔔 Show Notifications: {current_settings['show_notifications']}
+📁 Processed Folder: {current_settings['processed_folder']}
 
-Configuration complete! Settings have been updated."""
-            showInfo(settings_info)
-        
-        # Simple menu-based configuration
-        def config_check_interval():
-            """Configure check interval"""
-            current_interval = current_settings['check_interval']
-            
-            # Show options
-            options = [1, 2, 3, 5, 10, 15, 30, 60]
-            if current_interval not in options:
-                options.append(current_interval)
-            options.sort()
-            
-            message = f"Current check interval: {current_interval} seconds\n\nSelect a new interval:\n"
-            for i, interval in enumerate(options, 1):
-                marker = " (current)" if interval == current_interval else ""
-                message += f"{i}. {interval} seconds{marker}\n"
-            
-            showInfo(message)
-            
-            # For now, just set to 5 seconds as a safe default
-            config.set("check_interval", 5)
-            current_settings['check_interval'] = 5
-            showInfo("Check interval set to 5 seconds")
-        
-        def config_processed_action():
-            """Configure processed action"""
-            current_action = current_settings['processed_action']
-            
-            message = f"""Current processed action: {current_action}
+The addon is monitoring your Downloads folder for signed .apkg files from the ChatGPT extension.
 
-Available actions:
-• keep - Keep files in Downloads folder
-• move - Move files to processed folder  
-• delete - Delete files after import
+Configuration Info:
+• Files with signed names (hash-timestamp.apkg) will be imported
+• Check interval determines how often to scan for new files
+• Processed action controls what happens to files after import
+• Notifications show when files are imported
 
-For now, using 'move' as the safe default."""
-            
-            showInfo(message)
-            
-            # Set to move as safe default
-            config.set("processed_action", "move")
-            current_settings['processed_action'] = "move"
-            showInfo("Processed action set to 'move'")
-        
-        def config_notifications():
-            """Configure notifications"""
-            current_notif = current_settings['show_notifications']
-            
-            message = f"""Current notifications setting: {current_notif}
+For detailed configuration options, use:
+Tools → Add-ons → Config → ChatGPT Sync
 
-Notifications will be {'enabled' if not current_notif else 'disabled'}."""
-            
-            showInfo(message)
-            
-            # Toggle notifications
-            config.set("show_notifications", not current_notif)
-            current_settings['show_notifications'] = not current_notif
-            status = "enabled" if not current_notif else "disabled"
-            showInfo(f"Notifications {status}")
+The addon should work with these current settings!"""
         
-        def reset_config():
-            """Reset to defaults"""
-            config.reset()
-            current_settings.update(config.get_all())
-            showInfo("Settings reset to defaults")
+        showInfo(settings_info)
         
-        # Main configuration flow
-        showInfo("""ChatGPT Sync Configuration
+        # Show quick toggle options
+        toggle_info = f"""Quick Settings:
 
-This will guide you through the basic settings.
-You can also use Tools → Add-ons → Config for advanced options.""")
+Current notification setting: {'ON' if current_settings['show_notifications'] else 'OFF'}
+
+You can quickly toggle notifications from the ChatGPT Sync menu.
+Other settings can be changed via Tools → Add-ons → Config.
+
+The addon is ready to use with your current settings!"""
         
-        # Show current settings first
-        show_current_settings()
+        showInfo(toggle_info)
         
-        # Quick configuration options
-        try:
-            # Configure check interval
-            config_check_interval()
-            
-            # Configure processed action
-            config_processed_action()
-            
-            # Configure notifications
-            config_notifications()
-            
-            # Final settings display
-            show_current_settings()
-            
-        except Exception as e:
-            showCritical(f"Configuration error: {e}")
-            
     except Exception as e:
         import traceback
         error_msg = f"Error in text configuration: {e}\n\nTraceback:\n{traceback.format_exc()}"
