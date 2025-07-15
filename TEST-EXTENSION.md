@@ -112,6 +112,24 @@ console.log('\n=== Debug Test Complete ===');
   - Opens config page in new tab to avoid navigation interruption
   - Only opens config page if data was successfully generated
 
+#### Prompt Customization Not Working (FIXED)
+- **Issue**: Customization options weren't being applied to the actual prompt
+- **Fix**: Enhanced form reading and debugging for prompt generation
+- **Solution**: The extension now:
+  - Properly reads form values when generating prompts
+  - Includes comprehensive debugging for prompt generation
+  - Shows console logs for troubleshooting customization issues
+  - Validates form elements before reading values
+
+#### Preview Modal Button Issues (FIXED)
+- **Issue**: Close and copy buttons in preview modal weren't working
+- **Fix**: Replaced inline event handlers with proper event listeners
+- **Solution**: The preview modal now:
+  - Uses proper event listeners for all buttons
+  - Provides visual feedback for copy operations
+  - Includes fallback clipboard functionality
+  - Properly closes when clicking outside or on buttons
+
 ## Advanced Debugging
 
 ### Check Extension Status
@@ -157,6 +175,24 @@ if (sendButton) {
 }
 ```
 
+### Test Prompt Customization
+```javascript
+// Test prompt generation and customization
+window.chatToAnki.debugTestPromptGeneration();
+
+// Test preview modal
+window.chatToAnki.previewPrompt();
+
+// Test with custom settings (after opening modal)
+// 1. Open the extension modal
+// 2. Fill in some customization options
+// 3. Run this test
+const settings = window.chatToAnki.getUserPromptSettings();
+console.log('Current settings:', settings);
+const customPrompt = window.chatToAnki.generateCustomPrompt();
+console.log('Custom prompt:', customPrompt);
+```
+
 ## Troubleshooting
 
 ### Issue: Extension button not visible
@@ -174,6 +210,21 @@ if (sendButton) {
 
 ### Issue: Console errors
 **Solution:** Check the specific error messages and ensure all permissions are granted
+
+### Issue: Prompt customization not working
+**Solution:** 
+1. Open browser console and look for debugging messages
+2. Check if form elements are being read properly
+3. Run `window.chatToAnki.debugTestPromptGeneration()` to diagnose
+4. Verify the modal is properly loaded before generating prompts
+5. Check console for "generateCustomPrompt called" and related messages
+
+### Issue: Preview modal buttons not working
+**Solution:** 
+1. Ensure the modal is fully loaded before clicking buttons
+2. Check browser console for JavaScript errors
+3. The copy button should show "Copied!" feedback when successful
+4. Click outside the modal or use the close button to dismiss it
 
 ## Files Updated
 

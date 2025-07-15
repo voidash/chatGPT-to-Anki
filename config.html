@@ -113,12 +113,81 @@
             padding: 20px;
             background: #f9fafb;
             transition: all 0.3s;
+            position: relative;
         }
         
         .flashcard-item:hover {
             border-color: #10a37f;
             transform: translateY(-2px);
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        .flashcard-item:hover .delete-card-btn {
+            opacity: 1;
+        }
+        
+        .delete-card-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 32px;
+            height: 32px;
+            border: none;
+            background: #ef4444;
+            color: white;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: all 0.3s;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        
+        .delete-card-btn:hover {
+            background: #dc2626;
+            transform: scale(1.1);
+        }
+        
+        .delete-card-btn svg {
+            width: 14px;
+            height: 14px;
+        }
+        
+        .edit-card-btn {
+            position: absolute;
+            top: 10px;
+            right: 50px;
+            width: 32px;
+            height: 32px;
+            border: none;
+            background: #3b82f6;
+            color: white;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: all 0.3s;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        
+        .edit-card-btn:hover {
+            background: #2563eb;
+            transform: scale(1.1);
+        }
+        
+        .edit-card-btn svg {
+            width: 14px;
+            height: 14px;
+        }
+        
+        .flashcard-item:hover .edit-card-btn {
+            opacity: 1;
         }
         
         .flashcard-topic {
@@ -344,6 +413,230 @@
             border: 1px solid #bfdbfe;
         }
         
+        /* Edit Modal Styles */
+        .edit-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .edit-modal.active {
+            display: flex;
+        }
+        
+        .edit-modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+        
+        .edit-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .edit-modal-header h3 {
+            margin: 0;
+            color: #1f2937;
+        }
+        
+        .edit-modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #6b7280;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .edit-modal-close:hover {
+            color: #374151;
+        }
+        
+        .edit-form-group {
+            margin-bottom: 20px;
+        }
+        
+        .edit-form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #374151;
+        }
+        
+        .edit-form-input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 14px;
+            resize: vertical;
+            min-height: 40px;
+        }
+        
+        .edit-form-input:focus {
+            outline: none;
+            border-color: #10a37f;
+            box-shadow: 0 0 0 3px rgba(16, 163, 127, 0.1);
+        }
+        
+        .edit-form-textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+        
+        .edit-modal-actions {
+            display: flex;
+            gap: 15px;
+            justify-content: flex-end;
+            margin-top: 25px;
+            padding-top: 15px;
+            border-top: 1px solid #e5e7eb;
+        }
+        
+        /* Topic-based Flashcard Layout */
+        .flashcard-manager {
+            display: flex;
+            gap: 30px;
+            margin-top: 20px;
+        }
+        
+        .topic-sidebar {
+            width: 250px;
+            background: #f8fafc;
+            border-radius: 8px;
+            padding: 20px;
+            border: 1px solid #e5e7eb;
+        }
+        
+        .topic-sidebar h3 {
+            margin-bottom: 15px;
+            color: #1f2937;
+            font-size: 1.1em;
+            font-weight: 600;
+        }
+        
+        .topic-list {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        
+        .topic-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: #6b7280;
+            font-size: 14px;
+        }
+        
+        .topic-item:hover {
+            background: #e5e7eb;
+            color: #374151;
+        }
+        
+        .topic-item.active {
+            background: #10a37f;
+            color: white;
+        }
+        
+        .topic-item.active:hover {
+            background: #0d8f6b;
+        }
+        
+        .topic-name {
+            font-weight: 500;
+        }
+        
+        .topic-count {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        .topic-item.active .topic-count {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        
+        .topic-item:not(.active) .topic-count {
+            background: #e5e7eb;
+            color: #6b7280;
+        }
+        
+        .flashcard-content {
+            flex: 1;
+        }
+        
+        .flashcard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .flashcard-header h3 {
+            margin: 0;
+            color: #1f2937;
+            font-size: 1.3em;
+        }
+        
+        .flashcard-count {
+            color: #6b7280;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        /* Responsive design for topic layout */
+        @media (max-width: 1024px) {
+            .flashcard-manager {
+                flex-direction: column;
+            }
+            
+            .topic-sidebar {
+                width: 100%;
+            }
+            
+            .topic-list {
+                flex-direction: row;
+                flex-wrap: wrap;
+                gap: 10px;
+            }
+            
+            .topic-item {
+                flex: 0 0 auto;
+                min-width: 120px;
+            }
+        }
+        
         @media (max-width: 768px) {
             .tabs {
                 flex-direction: column;
@@ -431,9 +724,27 @@
                         Clear All
                     </button>
                 </div>
-                <div id="flashcardContainer">
-                    <div class="loading">
-                        <div class="spinner"></div>
+                
+                <div class="flashcard-manager">
+                    <div class="topic-sidebar">
+                        <h3>Topics</h3>
+                        <div class="topic-list" id="topicList">
+                            <div class="loading">
+                                <div class="spinner"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="flashcard-content">
+                        <div class="flashcard-header">
+                            <h3 id="selectedTopicTitle">All Flashcards</h3>
+                            <div class="flashcard-count" id="flashcardCount">0 flashcards</div>
+                        </div>
+                        <div id="flashcardContainer">
+                            <div class="loading">
+                                <div class="spinner"></div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -561,6 +872,34 @@
                     </button>
                 </div>
             </div>
+        </div>
+    </div>
+    
+    <!-- Edit Modal -->
+    <div class="edit-modal" id="editModal">
+        <div class="edit-modal-content">
+            <div class="edit-modal-header">
+                <h3>Edit Flashcard</h3>
+                <button class="edit-modal-close" id="editModalClose">×</button>
+            </div>
+            <form id="editForm">
+                <div class="edit-form-group">
+                    <label class="edit-form-label" for="editTopic">Topic</label>
+                    <input type="text" class="edit-form-input" id="editTopic" placeholder="Enter topic">
+                </div>
+                <div class="edit-form-group">
+                    <label class="edit-form-label" for="editQuestion">Question</label>
+                    <textarea class="edit-form-input edit-form-textarea" id="editQuestion" placeholder="Enter question"></textarea>
+                </div>
+                <div class="edit-form-group">
+                    <label class="edit-form-label" for="editAnswer">Answer</label>
+                    <textarea class="edit-form-input edit-form-textarea" id="editAnswer" placeholder="Enter answer"></textarea>
+                </div>
+                <div class="edit-modal-actions">
+                    <button type="button" class="button button-secondary" id="editCancel">Cancel</button>
+                    <button type="submit" class="button button-primary" id="editSave">Save Changes</button>
+                </div>
+            </form>
         </div>
     </div>
     

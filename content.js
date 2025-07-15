@@ -359,6 +359,10 @@ class ChatToAnkiExtension {
       url: checkbox.dataset.chatUrl
     }));
     
+    // Store current prompt settings for use during processing
+    this.currentPromptSettings = this.getUserPromptSettings();
+    console.log('Storing prompt settings for processing:', this.currentPromptSettings);
+    
     this.closeModal();
     
     // Show processing indicator
@@ -528,6 +532,7 @@ class ChatToAnkiExtension {
       throw new Error('Could not find input box');
     }
     
+    // Generate prompt using current form values when actually generating flashcards
     const prompt = this.generateCustomPrompt();
     
     // Clear input and add prompt gently
@@ -1033,11 +1038,19 @@ class ChatToAnkiExtension {
   }
   
   generateCustomPrompt() {
-    const userSettings = this.getUserPromptSettings();
+    console.log('generateCustomPrompt called');
+    
+    // Use stored settings if available (from modal submission), otherwise read current form
+    const userSettings = this.currentPromptSettings || this.getUserPromptSettings();
+    console.log('Using prompt settings:', userSettings);
+    
     const basePrompt = this.getBasePromptTemplate();
     const customization = this.getCustomizationText(userSettings);
     
-    return `${basePrompt}\n\n${customization}`;
+    const finalPrompt = `${basePrompt}\n\n${customization}`;
+    console.log('Final prompt generated:', finalPrompt);
+    
+    return finalPrompt;
   }
   
   getUserPromptSettings() {
@@ -1050,14 +1063,42 @@ class ChatToAnkiExtension {
       customInstructions: ''
     };
     
-    if (document.getElementById('anki-topic-focus')) {
-      settings.topicFocus = document.getElementById('anki-topic-focus').value.trim();
-      settings.questionType = document.getElementById('anki-question-type').value;
-      settings.difficulty = document.getElementById('anki-difficulty').value;
-      settings.cardCount = document.getElementById('anki-card-count').value;
-      settings.customInstructions = document.getElementById('anki-custom-instructions').value.trim();
+    try {
+      const topicFocusEl = document.getElementById('anki-topic-focus');
+      const questionTypeEl = document.getElementById('anki-question-type');
+      const difficultyEl = document.getElementById('anki-difficulty');
+      const cardCountEl = document.getElementById('anki-card-count');
+      const customInstructionsEl = document.getElementById('anki-custom-instructions');
+      
+      if (topicFocusEl) {
+        settings.topicFocus = topicFocusEl.value.trim();
+        console.log('Topic focus:', settings.topicFocus);
+      }
+      
+      if (questionTypeEl) {
+        settings.questionType = questionTypeEl.value;
+        console.log('Question type:', settings.questionType);
+      }
+      
+      if (difficultyEl) {
+        settings.difficulty = difficultyEl.value;
+        console.log('Difficulty:', settings.difficulty);
+      }
+      
+      if (cardCountEl) {
+        settings.cardCount = cardCountEl.value;
+        console.log('Card count:', settings.cardCount);
+      }
+      
+      if (customInstructionsEl) {
+        settings.customInstructions = customInstructionsEl.value.trim();
+        console.log('Custom instructions:', settings.customInstructions);
+      }
+    } catch (error) {
+      console.warn('Error reading prompt settings:', error);
     }
     
+    console.log('Final settings:', settings);
     return settings;
   }
   
@@ -1078,6 +1119,7 @@ Science,What is photosynthesis?,The process by which plants convert sunlight, ca
   }
   
   getCustomizationText(settings) {
+    console.log('getCustomizationText called with settings:', settings);
     let customization = 'CUSTOMIZATION INSTRUCTIONS:\n';
     
     // Topic focus
@@ -1118,39 +1160,87 @@ Science,What is photosynthesis?,The process by which plants convert sunlight, ca
       customization += `- Additional instructions: ${settings.customInstructions}\n`;
     }
     
+    console.log('Generated customization text:', customization);
     return customization;
   }
   
   previewPrompt() {
+    console.log('Generating preview prompt...');
     const prompt = this.generateCustomPrompt();
+    console.log('Generated prompt:', prompt);
     
     // Create preview modal
     const previewModal = document.createElement('div');
     previewModal.className = 'anki-modal-overlay';
+    previewModal.id = 'anki-preview-modal';
+    
+    const escapedPrompt = this.escapeHtml(prompt);
+    const promptForClipboard = prompt.replace(/"/g, '\\"').replace(/`/g, '\\`');
+    
     previewModal.innerHTML = `
       <div class="anki-modal-content anki-preview-modal">
         <div class="anki-modal-header">
           <h2>Prompt Preview</h2>
-          <button class="anki-close-btn" onclick="this.closest('.anki-modal-overlay').remove()">&times;</button>
+          <button class="anki-close-btn" id="anki-preview-close-x">&times;</button>
         </div>
         <div class="anki-modal-body">
           <div class="anki-prompt-preview">
-            <pre>${this.escapeHtml(prompt)}</pre>
+            <pre>${escapedPrompt}</pre>
           </div>
         </div>
         <div class="anki-modal-footer">
-          <button class="anki-btn anki-btn-secondary" onclick="this.closest('.anki-modal-overlay').remove()">Close</button>
-          <button class="anki-btn anki-btn-primary" onclick="navigator.clipboard.writeText(\`${prompt.replace(/`/g, '\\`')}\`)">Copy to Clipboard</button>
+          <button class="anki-btn anki-btn-secondary" id="anki-preview-close">Close</button>
+          <button class="anki-btn anki-btn-primary" id="anki-preview-copy">Copy to Clipboard</button>
         </div>
       </div>
     `;
     
     document.body.appendChild(previewModal);
     
+    // Add event listeners for buttons
+    const closeBtn = document.getElementById('anki-preview-close');
+    const closeXBtn = document.getElementById('anki-preview-close-x');
+    const copyBtn = document.getElementById('anki-preview-copy');
+    
+    const closeModal = () => {
+      previewModal.remove();
+    };
+    
+    const copyToClipboard = async () => {
+      try {
+        await navigator.clipboard.writeText(prompt);
+        // Show feedback
+        copyBtn.textContent = 'Copied!';
+        copyBtn.style.backgroundColor = '#10a37f';
+        setTimeout(() => {
+          copyBtn.textContent = 'Copy to Clipboard';
+          copyBtn.style.backgroundColor = '';
+        }, 2000);
+      } catch (err) {
+        console.error('Failed to copy to clipboard:', err);
+        // Fallback for older browsers
+        const textArea = document.createElement('textarea');
+        textArea.value = prompt;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        
+        copyBtn.textContent = 'Copied!';
+        setTimeout(() => {
+          copyBtn.textContent = 'Copy to Clipboard';
+        }, 2000);
+      }
+    };
+    
+    if (closeBtn) closeBtn.addEventListener('click', closeModal);
+    if (closeXBtn) closeXBtn.addEventListener('click', closeModal);
+    if (copyBtn) copyBtn.addEventListener('click', copyToClipboard);
+    
     // Close when clicking outside
     previewModal.addEventListener('click', (e) => {
       if (e.target === previewModal) {
-        previewModal.remove();
+        closeModal();
       }
     });
   }
@@ -1219,6 +1309,47 @@ Science,What is photosynthesis?,The process by which plants convert sunlight, ca
     }).catch(error => {
       console.error('Error waiting for response:', error);
     });
+  }
+  
+  debugTestPromptGeneration() {
+    console.log('=== Testing Prompt Generation ===');
+    
+    // Test with default settings
+    console.log('--- Testing with default settings ---');
+    const defaultPrompt = this.generateCustomPrompt();
+    console.log('Default prompt length:', defaultPrompt.length);
+    console.log('Default prompt preview:', defaultPrompt.substring(0, 200) + '...');
+    
+    // Test reading form elements
+    console.log('\n--- Testing form element reading ---');
+    const elements = {
+      'anki-topic-focus': document.getElementById('anki-topic-focus'),
+      'anki-question-type': document.getElementById('anki-question-type'),
+      'anki-difficulty': document.getElementById('anki-difficulty'),
+      'anki-card-count': document.getElementById('anki-card-count'),
+      'anki-custom-instructions': document.getElementById('anki-custom-instructions')
+    };
+    
+    Object.keys(elements).forEach(id => {
+      const element = elements[id];
+      if (element) {
+        console.log(`✓ Found ${id}: ${element.value || element.textContent}`);
+      } else {
+        console.log(`✗ Missing ${id}`);
+      }
+    });
+    
+    // Test settings reading
+    console.log('\n--- Testing settings reading ---');
+    const settings = this.getUserPromptSettings();
+    console.log('Current settings:', settings);
+    
+    // Test customization text generation
+    console.log('\n--- Testing customization text ---');
+    const customization = this.getCustomizationText(settings);
+    console.log('Customization text:', customization);
+    
+    console.log('\n=== Prompt Generation Test Complete ===');
   }
 }
 

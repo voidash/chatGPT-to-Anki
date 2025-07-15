@@ -60,6 +60,13 @@ if (window.chatToAnki) {
                             const prompt = window.chatToAnki.generateCustomPrompt();
                             console.log('✓ Prompt generation working');
                             console.log('Sample prompt (first 200 chars):', prompt.substring(0, 200) + '...');
+                            
+                            // Test the comprehensive prompt debugging
+                            setTimeout(() => {
+                                console.log('\n--- Running Comprehensive Prompt Test ---');
+                                window.chatToAnki.debugTestPromptGeneration();
+                            }, 1000);
+                            
                         } catch (error) {
                             console.log('✗ Prompt generation failed:', error.message);
                         }

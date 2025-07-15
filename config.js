@@ -90,13 +90,17 @@ class ConfigManager {
     
     this.flashcardData.forEach(data => {
       if (data.csvData) {
-        const lines = data.csvData.split('\n').filter(line => line.trim());
+        // Try both \n and \\n for line splitting
+        let lines = data.csvData.split('\n').filter(line => line.trim());
+        if (lines.length <= 1) {
+          lines = data.csvData.split('\\n').filter(line => line.trim());
+        }
         totalFlashcards += lines.length;
         
         lines.forEach(line => {
-          const parts = line.split(',');
+          const parts = this.parseCSVLine(line);
           if (parts.length >= 3) {
-            topics.add(parts[0].trim());
+            topics.add(parts[0]);
           }
         });
       }
@@ -146,27 +150,149 @@ class ConfigManager {
   }
   
   loadFlashcards() {
-    const container = document.getElementById('flashcardContainer');
-    
     if (this.flashcardData.length === 0) {
+      this.showEmptyFlashcards();
+      return;
+    }
+    
+    // Load topics and flashcards
+    this.loadTopics();
+    this.loadFlashcardsByTopic();
+  }
+  
+  showEmptyFlashcards() {
+    const topicContainer = document.getElementById('topicList');
+    const flashcardContainer = document.getElementById('flashcardContainer');
+    
+    topicContainer.innerHTML = `
+      <div class="empty-state">
+        <p>No topics yet</p>
+      </div>
+    `;
+    
+    flashcardContainer.innerHTML = `
+      <div class="empty-state">
+        <svg viewBox="0 0 24 24" fill="currentColor">
+          <path d="M19,3A2,2 0 0,1 21,5V19A2,2 0 0,1 19,21H5A2,2 0 0,1 3,19V5A2,2 0 0,1 5,3H19M18,18V6H6V18H18Z"/>
+        </svg>
+        <h3>No flashcards yet</h3>
+        <p>Go to ChatGPT and use the extension to generate flashcards from your conversations</p>
+        <button class="button button-primary" onclick="window.open('https://chatgpt.com', '_blank')">
+          Go to ChatGPT
+        </button>
+      </div>
+    `;
+  }
+  
+  loadTopics() {
+    const topicContainer = document.getElementById('topicList');
+    const flashcards = this.parseFlashcardsWithIndex();
+    
+    // Group flashcards by topic
+    const topicGroups = {};
+    flashcards.forEach(card => {
+      const topic = card.topic || 'General';
+      if (!topicGroups[topic]) {
+        topicGroups[topic] = [];
+      }
+      topicGroups[topic].push(card);
+    });
+    
+    // Create topic items
+    const topics = Object.keys(topicGroups).sort();
+    const totalFlashcards = flashcards.length;
+    
+    let topicHtml = `
+      <div class="topic-item active" data-topic="all">
+        <span class="topic-name">All Topics</span>
+        <span class="topic-count">${totalFlashcards}</span>
+      </div>
+    `;
+    
+    topics.forEach(topic => {
+      const count = topicGroups[topic].length;
+      topicHtml += `
+        <div class="topic-item" data-topic="${this.escapeHtml(topic)}">
+          <span class="topic-name">${this.escapeHtml(topic)}</span>
+          <span class="topic-count">${count}</span>
+        </div>
+      `;
+    });
+    
+    topicContainer.innerHTML = topicHtml;
+    
+    // Add event listeners for topic selection
+    this.setupTopicSelection();
+    
+    // Store topic groups for filtering
+    this.topicGroups = topicGroups;
+    this.selectedTopic = 'all';
+  }
+  
+  setupTopicSelection() {
+    const topicItems = document.querySelectorAll('.topic-item');
+    
+    topicItems.forEach(item => {
+      item.addEventListener('click', () => {
+        const topic = item.getAttribute('data-topic');
+        this.selectTopic(topic);
+      });
+    });
+  }
+  
+  selectTopic(topic) {
+    this.selectedTopic = topic;
+    
+    // Update active state
+    document.querySelectorAll('.topic-item').forEach(item => {
+      item.classList.remove('active');
+    });
+    
+    document.querySelector(`[data-topic="${topic}"]`).classList.add('active');
+    
+    // Update header
+    const titleElement = document.getElementById('selectedTopicTitle');
+    titleElement.textContent = topic === 'all' ? 'All Flashcards' : topic;
+    
+    // Load flashcards for selected topic
+    this.loadFlashcardsByTopic(topic);
+  }
+  
+  loadFlashcardsByTopic(topic = 'all') {
+    const container = document.getElementById('flashcardContainer');
+    const countElement = document.getElementById('flashcardCount');
+    
+    let flashcards;
+    if (topic === 'all') {
+      flashcards = this.parseFlashcardsWithIndex();
+    } else {
+      flashcards = this.topicGroups[topic] || [];
+    }
+    
+    // Update count
+    countElement.textContent = `${flashcards.length} flashcard${flashcards.length === 1 ? '' : 's'}`;
+    
+    if (flashcards.length === 0) {
       container.innerHTML = `
         <div class="empty-state">
-          <svg viewBox="0 0 24 24" fill="currentColor">
-            <path d="M19,3A2,2 0 0,1 21,5V19A2,2 0 0,1 19,21H5A2,2 0 0,1 3,19V5A2,2 0 0,1 5,3H19M18,18V6H6V18H18Z"/>
-          </svg>
-          <h3>No flashcards yet</h3>
-          <p>Go to ChatGPT and use the extension to generate flashcards from your conversations</p>
-          <button class="button button-primary" onclick="window.open('https://chatgpt.com', '_blank')">
-            Go to ChatGPT
-          </button>
+          <p>No flashcards in this topic</p>
         </div>
       `;
       return;
     }
     
-    const flashcards = this.parseFlashcards();
-    const flashcardHtml = flashcards.map(card => `
-      <div class="flashcard-item">
+    const flashcardHtml = flashcards.map((card, index) => `
+      <div class="flashcard-item" data-card-index="${index}">
+        <button class="edit-card-btn" data-chat-index="${card.chatIndex}" data-line-index="${card.lineIndex}" title="Edit flashcard">
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <path d="M20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18,2.9 17.35,2.9 16.96,3.29L15.12,5.12L18.87,8.87M3,17.25V21H6.75L17.81,9.93L14.06,6.18L3,17.25Z"/>
+          </svg>
+        </button>
+        <button class="delete-card-btn" data-chat-index="${card.chatIndex}" data-line-index="${card.lineIndex}" title="Delete flashcard">
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"/>
+          </svg>
+        </button>
         <div class="flashcard-topic">${this.escapeHtml(card.topic)}</div>
         <div class="flashcard-question">${this.escapeHtml(card.question)}</div>
         <div class="flashcard-answer">${this.escapeHtml(card.answer)}</div>
@@ -174,6 +300,10 @@ class ConfigManager {
     `).join('');
     
     container.innerHTML = `<div class="flashcard-grid">${flashcardHtml}</div>`;
+    
+    // Add event listeners for delete and edit buttons
+    this.setupDeleteButtons();
+    this.setupEditButtons();
   }
   
   parseFlashcards() {
@@ -181,15 +311,19 @@ class ConfigManager {
     
     this.flashcardData.forEach(data => {
       if (data.csvData) {
-        const lines = data.csvData.split('\n').filter(line => line.trim());
+        // Try both \n and \\n for line splitting
+        let lines = data.csvData.split('\n').filter(line => line.trim());
+        if (lines.length <= 1) {
+          lines = data.csvData.split('\\n').filter(line => line.trim());
+        }
         
         lines.forEach(line => {
-          const parts = line.split(',');
+          const parts = this.parseCSVLine(line);
           if (parts.length >= 3) {
             flashcards.push({
-              topic: parts[0].trim(),
-              question: parts[1].trim(),
-              answer: parts.slice(2).join(',').trim()
+              topic: parts[0],
+              question: parts[1],
+              answer: parts[2] // Use only the third part
             });
           }
         });
@@ -197,6 +331,76 @@ class ConfigManager {
     });
     
     return flashcards;
+  }
+  
+  parseFlashcardsWithIndex() {
+    const flashcards = [];
+    
+    this.flashcardData.forEach((data, chatIndex) => {
+      if (data.csvData) {
+        // Try both \n and \\n for line splitting
+        let lines = data.csvData.split('\n').filter(line => line.trim());
+        if (lines.length <= 1) {
+          lines = data.csvData.split('\\n').filter(line => line.trim());
+        }
+        
+        lines.forEach((line, lineIndex) => {
+          const parts = this.parseCSVLine(line);
+          if (parts.length >= 3) {
+            flashcards.push({
+              topic: parts[0],
+              question: parts[1],
+              answer: parts[2], // Use only the third part
+              chatIndex: chatIndex,
+              lineIndex: lineIndex
+            });
+          }
+        });
+      }
+    });
+    
+    return flashcards;
+  }
+  
+  setupDeleteButtons() {
+    const deleteButtons = document.querySelectorAll('.delete-card-btn');
+    console.log('Setting up delete buttons, found:', deleteButtons.length);
+    
+    deleteButtons.forEach(button => {
+      button.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        const chatIndex = parseInt(button.getAttribute('data-chat-index'));
+        const lineIndex = parseInt(button.getAttribute('data-line-index'));
+        
+        console.log('Delete button clicked:', { chatIndex, lineIndex });
+        
+        // Show confirmation dialog
+        if (confirm('Are you sure you want to delete this flashcard?')) {
+          this.deleteFlashcard(chatIndex, lineIndex);
+        }
+      });
+    });
+  }
+  
+  setupEditButtons() {
+    const editButtons = document.querySelectorAll('.edit-card-btn');
+    console.log('Setting up edit buttons, found:', editButtons.length);
+    
+    editButtons.forEach(button => {
+      button.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        const chatIndex = parseInt(button.getAttribute('data-chat-index'));
+        const lineIndex = parseInt(button.getAttribute('data-line-index'));
+        
+        console.log('Edit button clicked:', { chatIndex, lineIndex });
+        
+        this.openEditModal(chatIndex, lineIndex);
+      });
+    });
   }
   
   updateCSVPreview() {
@@ -215,7 +419,7 @@ class ConfigManager {
     const flashcards = this.parseFlashcards();
     const csvHeader = 'Topic,Question,Answer\n';
     const csvRows = flashcards.map(card => 
-      `"${card.topic}","${card.question}","${card.answer}"`
+      `"${card.topic.replace(/"/g, '""')}","${card.question.replace(/"/g, '""')}","${card.answer.replace(/"/g, '""')}"`
     ).join('\n');
     
     return csvHeader + csvRows;
@@ -275,6 +479,263 @@ class ConfigManager {
     } catch (error) {
       console.error('Error clearing flashcards:', error);
       this.showAlert('Error clearing flashcards', 'error');
+    }
+  }
+  
+  async deleteFlashcard(chatIndex, lineIndex) {
+    console.log('deleteFlashcard called with:', { chatIndex, lineIndex });
+    console.log('Current flashcardData:', this.flashcardData);
+    
+    try {
+      if (chatIndex >= 0 && chatIndex < this.flashcardData.length) {
+        const data = this.flashcardData[chatIndex];
+        console.log('Chat data:', data);
+        
+        if (data.csvData) {
+          // Try both \n and \\n for line splitting
+          let lines = data.csvData.split('\n').filter(line => line.trim());
+          if (lines.length <= 1) {
+            lines = data.csvData.split('\\n').filter(line => line.trim());
+          }
+          console.log('Lines before deletion:', lines);
+          
+          if (lineIndex >= 0 && lineIndex < lines.length) {
+            console.log('Deleting line:', lines[lineIndex]);
+            
+            // Remove the specific line
+            lines.splice(lineIndex, 1);
+            
+            // Update the CSV data
+            data.csvData = lines.join('\n');
+            
+            console.log('Lines after deletion:', lines);
+            
+            // If no lines left, remove the entire chat data
+            if (lines.length === 0) {
+              console.log('No lines left, removing entire chat data');
+              this.flashcardData.splice(chatIndex, 1);
+            }
+            
+            // Save updated data
+            console.log('Saving updated data:', this.flashcardData);
+            await this.setStorageData({ flashcardData: this.flashcardData });
+            
+            // Reload the display
+            this.loadData();
+            this.showAlert('Flashcard deleted successfully', 'success');
+          } else {
+            console.error('Invalid line index:', lineIndex, 'for lines:', lines);
+            this.showAlert('Invalid flashcard index', 'error');
+          }
+        } else {
+          console.error('No CSV data found for chat:', chatIndex);
+          this.showAlert('No flashcard data found', 'error');
+        }
+      } else {
+        console.error('Invalid chat index:', chatIndex, 'for flashcardData length:', this.flashcardData.length);
+        this.showAlert('Invalid chat index', 'error');
+      }
+    } catch (error) {
+      console.error('Error deleting flashcard:', error);
+      this.showAlert('Error deleting flashcard', 'error');
+    }
+  }
+  
+  openEditModal(chatIndex, lineIndex) {
+    console.log('Opening edit modal for:', { chatIndex, lineIndex });
+    
+    try {
+      // Get the flashcard data
+      const flashcard = this.getFlashcardByIndex(chatIndex, lineIndex);
+      if (!flashcard) {
+        this.showAlert('Flashcard not found', 'error');
+        return;
+      }
+      
+      // Store the current edit context
+      this.currentEditContext = { chatIndex, lineIndex, originalTopic: flashcard.topic };
+      
+      // Populate the form
+      document.getElementById('editTopic').value = flashcard.topic;
+      document.getElementById('editQuestion').value = flashcard.question;
+      document.getElementById('editAnswer').value = flashcard.answer;
+      
+      // Show the modal
+      document.getElementById('editModal').classList.add('active');
+      
+      // Set up modal event listeners if not already set up
+      this.setupEditModalListeners();
+      
+    } catch (error) {
+      console.error('Error opening edit modal:', error);
+      this.showAlert('Error opening edit modal', 'error');
+    }
+  }
+  
+  setupEditModalListeners() {
+    // Prevent multiple event listeners
+    if (this.editModalListenersSetup) return;
+    this.editModalListenersSetup = true;
+    
+    const modal = document.getElementById('editModal');
+    const closeBtn = document.getElementById('editModalClose');
+    const cancelBtn = document.getElementById('editCancel');
+    const form = document.getElementById('editForm');
+    
+    // Close modal events
+    const closeModal = () => {
+      modal.classList.remove('active');
+      this.currentEditContext = null;
+    };
+    
+    closeBtn.addEventListener('click', closeModal);
+    cancelBtn.addEventListener('click', closeModal);
+    
+    // Close on outside click
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        closeModal();
+      }
+    });
+    
+    // Close on escape key
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && modal.classList.contains('active')) {
+        closeModal();
+      }
+    });
+    
+    // Form submission
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      this.saveFlashcardEdit();
+    });
+  }
+  
+  getFlashcardByIndex(chatIndex, lineIndex) {
+    try {
+      if (chatIndex >= 0 && chatIndex < this.flashcardData.length) {
+        const data = this.flashcardData[chatIndex];
+        
+        if (data.csvData) {
+          // Try both \n and \\n for line splitting
+          let lines = data.csvData.split('\n').filter(line => line.trim());
+          if (lines.length <= 1) {
+            lines = data.csvData.split('\\n').filter(line => line.trim());
+          }
+          
+          if (lineIndex >= 0 && lineIndex < lines.length) {
+            const line = lines[lineIndex];
+            const parts = this.parseCSVLine(line);
+            
+            if (parts.length >= 3) {
+              return {
+                topic: parts[0],
+                question: parts[1],
+                answer: parts[2] // Use only the third part
+              };
+            }
+          }
+        }
+      }
+      return null;
+    } catch (error) {
+      console.error('Error getting flashcard by index:', error);
+      return null;
+    }
+  }
+  
+  async saveFlashcardEdit() {
+    if (!this.currentEditContext) {
+      this.showAlert('No edit context available', 'error');
+      return;
+    }
+    
+    try {
+      const { chatIndex, lineIndex, originalTopic } = this.currentEditContext;
+      
+      // Get form values
+      const newTopic = document.getElementById('editTopic').value.trim();
+      const newQuestion = document.getElementById('editQuestion').value.trim();
+      const newAnswer = document.getElementById('editAnswer').value.trim();
+      
+      // Validate input
+      if (!newTopic || !newQuestion || !newAnswer) {
+        this.showAlert('All fields are required', 'error');
+        return;
+      }
+      
+      // Update the flashcard data
+      const success = await this.updateFlashcard(chatIndex, lineIndex, newTopic, newQuestion, newAnswer);
+      
+      if (success) {
+        // Close modal
+        document.getElementById('editModal').classList.remove('active');
+        this.currentEditContext = null;
+        
+        // Check if topic changed
+        const topicChanged = originalTopic !== newTopic;
+        
+        // Reload data and update display
+        await this.loadData();
+        
+        if (topicChanged) {
+          // If topic changed, reload topics and reset to "All Topics" view
+          this.loadTopics();
+          this.selectTopic('all');
+        } else {
+          // If topic didn't change, maintain current topic view
+          this.loadFlashcardsByTopic(this.selectedTopic);
+        }
+        
+        this.showAlert('Flashcard updated successfully', 'success');
+      }
+      
+    } catch (error) {
+      console.error('Error saving flashcard edit:', error);
+      this.showAlert('Error saving changes', 'error');
+    }
+  }
+  
+  async updateFlashcard(chatIndex, lineIndex, newTopic, newQuestion, newAnswer) {
+    console.log('Updating flashcard:', { chatIndex, lineIndex, newTopic, newQuestion, newAnswer });
+    
+    try {
+      if (chatIndex >= 0 && chatIndex < this.flashcardData.length) {
+        const data = this.flashcardData[chatIndex];
+        
+        if (data.csvData) {
+          // Try both \n and \\n for line splitting
+          let lines = data.csvData.split('\n').filter(line => line.trim());
+          if (lines.length <= 1) {
+            lines = data.csvData.split('\\n').filter(line => line.trim());
+          }
+          
+          if (lineIndex >= 0 && lineIndex < lines.length) {
+            // Create new CSV line with updated data (properly quoted)
+            const newLine = `"${newTopic.replace(/"/g, '""')}","${newQuestion.replace(/"/g, '""')}","${newAnswer.replace(/"/g, '""')}"`;
+            
+            // Update the line
+            lines[lineIndex] = newLine;
+            
+            // Update the CSV data (use the same separator that was used to split)
+            data.csvData = lines.join('\n');
+            
+            // Save updated data
+            await this.setStorageData({ flashcardData: this.flashcardData });
+            
+            console.log('Flashcard updated successfully');
+            return true;
+          }
+        }
+      }
+      
+      console.error('Invalid flashcard indices or data structure');
+      return false;
+      
+    } catch (error) {
+      console.error('Error updating flashcard:', error);
+      return false;
     }
   }
   
@@ -461,9 +922,69 @@ class ConfigManager {
     div.textContent = text;
     return div.innerHTML;
   }
+  
+  // Proper CSV parsing function that handles quoted fields
+  parseCSVLine(line) {
+    const result = [];
+    let current = '';
+    let inQuotes = false;
+    let i = 0;
+    
+    while (i < line.length) {
+      const char = line[i];
+      
+      if (char === '"') {
+        if (inQuotes && line[i + 1] === '"') {
+          // Escaped quote
+          current += '"';
+          i += 2;
+        } else {
+          // Toggle quote state
+          inQuotes = !inQuotes;
+          i++;
+        }
+      } else if (char === ',' && !inQuotes) {
+        // End of field
+        result.push(current.trim());
+        current = '';
+        i++;
+      } else {
+        current += char;
+        i++;
+      }
+    }
+    
+    // Add the last field
+    result.push(current.trim());
+    
+    return result;
+  }
+  
+  // Debug function to test deletion
+  debugDeleteSystem() {
+    console.log('=== Debug Delete System ===');
+    console.log('Current flashcard data:', this.flashcardData);
+    
+    const flashcards = this.parseFlashcardsWithIndex();
+    console.log('Parsed flashcards with indices:', flashcards);
+    
+    const deleteButtons = document.querySelectorAll('.delete-card-btn');
+    console.log('Delete buttons found:', deleteButtons.length);
+    
+    deleteButtons.forEach((button, index) => {
+      console.log(`Button ${index}:`, {
+        chatIndex: button.getAttribute('data-chat-index'),
+        lineIndex: button.getAttribute('data-line-index')
+      });
+    });
+    
+    console.log('=== End Debug ===');
+  }
 }
 
 // Initialize the configuration manager
+let configManager;
+
 document.addEventListener('DOMContentLoaded', () => {
-  new ConfigManager();
+  configManager = new ConfigManager();
 });
