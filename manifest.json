@@ -16,6 +16,7 @@
     "https://chat.openai.com/*"
   ],
   
+  
   "content_scripts": [
     {
       "matches": ["https://chatgpt.com/*", "https://chat.openai.com/*"],
@@ -36,7 +37,7 @@
   
   "web_accessible_resources": [
     {
-      "resources": ["modal.html", "config.html", "genanki.js", "js/sql/sql-wasm.js", "js/sql/sql-wasm.wasm", "jszip.min.js", "FileSaver.js", "test/test.html", "test/test.js"],
+      "resources": ["modal.html", "config.html", "genanki.js", "genanki-lib.js", "sql/sql.js", "jszip.min.js", "filesaver/FileSaver.min.js", "anki/genanki.js", "test/test.html", "test/test.js", "anki-worker.js"],
       "matches": ["https://chatgpt.com/*", "https://chat.openai.com/*"]
     }
   ]

@@ -612,8 +612,13 @@ class ConfigManager {
       this.exportAnkiPackage();
     });
     
-    document.getElementById('syncAnkiWeb').addEventListener('click', () => {
-      this.syncToAnkiWeb();
+    document.getElementById('exportForAnkiAddon').addEventListener('click', () => {
+      this.exportForAnkiAddon();
+    });
+    
+    document.getElementById('addonInstructions').addEventListener('click', (e) => {
+      e.preventDefault();
+      this.showAddonInstructions();
     });
     
     // Settings buttons
@@ -957,47 +962,155 @@ class ConfigManager {
     }
   }
   
-  async syncToAnkiWeb() {
-    const username = document.getElementById('ankiUsername').value;
-    const password = document.getElementById('ankiPassword').value;
+  // Generate signed filename for Anki addon
+  generateSignedFilename() {
+    const now = new Date();
+    const timestamp = now.toISOString()
+      .replace(/[-:]/g, '')
+      .replace(/\.\d{3}Z$/, '')
+      .slice(0, 15); // Format: 20240115103045
     
-    if (!username || !password) {
-      this.showAlert('Please enter both username and password', 'error');
+    const secretKey = "chatgpt-anki-extension-2024";
+    const payload = secretKey + timestamp;
+    
+    // Simple hash function (we'll use a basic implementation since crypto.subtle might not be available)
+    const hash = this.simpleHash(payload).substring(0, 10);
+    
+    return `${hash}-${timestamp}.apkg`;
+  }
+  
+  // Simple hash function for filename signing
+  simpleHash(str) {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32-bit integer
+    }
+    return Math.abs(hash).toString(16).padStart(10, '0');
+  }
+  
+  async exportForAnkiAddon() {
+    if (this.flashcardData.length === 0) {
+      this.showAlert('No flashcards to export', 'error');
       return;
     }
     
     try {
-      // Note: Direct AnkiWeb API sync would require a backend service
-      // For now, we'll create an Anki package and provide instructions
+      // Generate signed filename
+      const filename = this.generateSignedFilename();
+      console.log('Generated signed filename:', filename);
       
-      if (this.flashcardData.length === 0) {
-        this.showAlert('No flashcards to sync', 'error');
+      // Initialize Anki package generator
+      const generator = new AnkiPackageGenerator();
+      console.log('Initializing SQL.js for Anki addon export...');
+      await generator.initializeSQL();
+      console.log('SQL.js initialized successfully for Anki addon export');
+      
+      // Parse flashcard data
+      const flashcards = this.parseFlashcards();
+      console.log('Parsed flashcards for Anki addon:', flashcards.length);
+      
+      // Validate flashcard data
+      const validation = generator.validateFlashcardData(flashcards);
+      if (!validation.valid) {
+        console.error('Validation failed:', validation.errors);
+        this.showAlert(`Validation failed: ${validation.errors.join(', ')}`, 'error');
         return;
       }
+      console.log('Validation passed for Anki addon export');
       
-      // Generate Anki package first
-      const generator = new AnkiPackageGenerator();
-      
-      // Initialize SQL.js
-      await generator.initializeSQL();
-      
-      const flashcards = this.parseFlashcards();
+      // Generate and download Anki package with signed filename
       const deckName = this.settings.ankiDeckName || 'ChatGPT Flashcards';
+      console.log('Creating Anki package with signed filename:', filename);
+      await generator.downloadAnkiPackage(flashcards, deckName, filename);
       
-      await generator.downloadAnkiPackage(flashcards, deckName);
-      
-      // Show instructions for manual sync
-      this.showAlert('Anki package downloaded! Import it in Anki Desktop, then sync to AnkiWeb.', 'info');
-      
-      // Future implementation would include:
-      // 1. Backend service for AnkiWeb authentication
-      // 2. API calls to AnkiWeb
-      // 3. Direct deck upload
+      this.showAlert('Anki package exported to Downloads! The Anki addon will automatically import it.', 'success');
       
     } catch (error) {
-      console.error('Error syncing to AnkiWeb:', error);
-      this.showAlert('Error preparing AnkiWeb sync', 'error');
+      console.error('Error exporting for Anki addon:', error);
+      this.showAlert(`Error creating Anki package for addon: ${error.message}`, 'error');
     }
+  }
+  
+  showAddonInstructions() {
+    const instructions = `
+      <div style="max-width: 600px; line-height: 1.6;">
+        <h3 style="margin-top: 0;">ChatGPT Anki Sync Addon Installation</h3>
+        
+        <h4>Step 1: Download the Addon</h4>
+        <p>Download the addon files from the extension folder and install in Anki.</p>
+        
+        <h4>Step 2: Install in Anki</h4>
+        <ol>
+          <li>Open Anki Desktop</li>
+          <li>Go to Tools → Add-ons</li>
+          <li>Click "Install from file..."</li>
+          <li>Select the addon .ankiaddon file</li>
+          <li>Restart Anki</li>
+        </ol>
+        
+        <h4>Step 3: Usage</h4>
+        <ol>
+          <li>Make sure Anki is running</li>
+          <li>Use "Export for Anki Addon" button in this extension</li>
+          <li>The addon will automatically import new flashcards</li>
+          <li>Sync to AnkiWeb using Anki's built-in sync</li>
+        </ol>
+        
+        <h4>Addon Settings</h4>
+        <p>Configure the addon behavior in Tools → Add-ons → ChatGPT Anki Sync → Config</p>
+        
+        <p style="color: #10a37f; font-weight: 500;">
+          The addon monitors your Downloads folder and automatically imports .apkg files created by this extension.
+        </p>
+      </div>
+    `;
+    
+    // Create a modal to show instructions
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    `;
+    
+    const content = document.createElement('div');
+    content.style.cssText = `
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      max-width: 80%;
+      max-height: 80%;
+      overflow-y: auto;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    `;
+    
+    content.innerHTML = instructions + `
+      <div style="text-align: right; margin-top: 20px;">
+        <button class="button button-primary" onclick="this.closest('.modal').remove()">
+          Close
+        </button>
+      </div>
+    `;
+    
+    modal.className = 'modal';
+    modal.appendChild(content);
+    document.body.appendChild(modal);
+    
+    // Close on background click
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        modal.remove();
+      }
+    });
   }
   
   async saveSettings() {

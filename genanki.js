@@ -94,28 +94,95 @@ class AnkiPackageGenerator {
   }
   
   /**
-   * Initialize SQL.js for genanki-js according to documentation
+   * Initialize SQL.js using separate worker script to avoid CSP restrictions
    */
   async initializeSQL() {
     if (this.initialized) return;
     
     try {
-      // Initialize SQL.js according to genanki-js documentation
-      if (typeof initSqlJs !== 'undefined') {
-        const config = {
-          locateFile: filename => `js/sql/sql-wasm.wasm`
-        };
-        
-        window.SQL = await initSqlJs(config);
+      // Inject worker script if not already present
+      if (!document.querySelector('script[src*="anki-worker.js"]')) {
+        await this.injectWorkerScript();
+      }
+      
+      // Wait for worker to be ready
+      await this.waitForWorker();
+      
+      // Initialize SQL.js through worker
+      const result = await this.callWorkerMethod('initializeSQL', {});
+      
+      if (result.success) {
         this.initialized = true;
-        console.log('SQL.js initialized successfully for genanki-js');
+        console.log('SQL.js initialized successfully through worker');
       } else {
-        throw new Error('SQL.js not loaded');
+        throw new Error(result.error);
       }
     } catch (error) {
-      console.error('Error initializing SQL.js:', error);
+      console.error('Error initializing SQL.js through worker:', error);
       throw error;
     }
+  }
+  
+  /**
+   * Inject the worker script into the page
+   */
+  async injectWorkerScript() {
+    return new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = chrome.runtime.getURL('anki-worker.js');
+      script.onload = resolve;
+      script.onerror = reject;
+      document.head.appendChild(script);
+    });
+  }
+  
+  /**
+   * Wait for worker to be ready
+   */
+  async waitForWorker() {
+    return new Promise((resolve) => {
+      const handler = (event) => {
+        if (event.source === window && event.data && event.data.type === 'ANKI_WORKER_READY') {
+          window.removeEventListener('message', handler);
+          resolve();
+        }
+      };
+      
+      window.addEventListener('message', handler);
+    });
+  }
+  
+  /**
+   * Call a method on the worker
+   */
+  async callWorkerMethod(method, params) {
+    return new Promise((resolve, reject) => {
+      const requestId = Date.now() + Math.random();
+      
+      const handler = (event) => {
+        if (event.source === window && event.data && 
+            event.data.type === 'ANKI_WORKER_RESPONSE' && 
+            event.data.requestId === requestId) {
+          window.removeEventListener('message', handler);
+          
+          if (event.data.success) {
+            resolve(event.data.result);
+          } else {
+            reject(new Error(event.data.error));
+          }
+        }
+      };
+      
+      window.addEventListener('message', handler);
+      
+      // Send request to worker
+      window.postMessage({
+        type: 'ANKI_WORKER_REQUEST',
+        requestId,
+        method,
+        params
+      }, '*');
+    });
   }
   
   /**
@@ -129,43 +196,20 @@ class AnkiPackageGenerator {
       // Initialize SQL.js if not already done
       await this.initializeSQL();
       
-      // Check if genanki classes are available
-      if (typeof Model === 'undefined' || typeof Deck === 'undefined' || typeof Package === 'undefined') {
-        throw new Error('genanki-js library not loaded properly');
+      // Generate package through worker to avoid CSP restrictions
+      const result = await this.callWorkerMethod('generateAnkiPackage', {
+        flashcardData,
+        deckName,
+        modelId: this.modelId,
+        deckId: this.deckId,
+        cardTemplate: this.cardTemplate
+      });
+      
+      if (result.success) {
+        return true;
+      } else {
+        throw new Error(result.error);
       }
-      
-      // Create model with all required fields
-      const model = new Model({
-        id: this.modelId.toString(),
-        name: this.cardTemplate.name,
-        flds: this.cardTemplate.flds,
-        req: this.cardTemplate.req,
-        tmpls: this.cardTemplate.tmpls,
-        css: this.cardTemplate.css
-      });
-      
-      // Create deck
-      const deck = new Deck(this.deckId, deckName);
-      
-      // Add cards to deck
-      flashcardData.forEach((flashcard, index) => {
-        const note = model.note([
-          flashcard.topic || 'General',
-          flashcard.question || '',
-          flashcard.answer || ''
-        ], ['chatgpt', 'flashcard', flashcard.topic?.toLowerCase() || 'general']);
-        
-        deck.addNote(note);
-      });
-      
-      // Generate package
-      const pkg = new Package();
-      pkg.addDeck(deck);
-      
-      // writeToFile directly downloads the file
-      pkg.writeToFile(`${deckName.replace(/[^a-zA-Z0-9]/g, '_')}.apkg`);
-      
-      return true;
       
     } catch (error) {
       console.error('Error generating Anki package:', error);
@@ -259,43 +303,57 @@ class AnkiPackageGenerator {
       // Initialize SQL.js if not already done
       await this.initializeSQL();
       
-      // Check if genanki classes are available
-      if (typeof Model === 'undefined' || typeof Deck === 'undefined' || typeof Package === 'undefined') {
-        throw new Error('genanki-js library not loaded properly');
+      // Generate and download package through worker to avoid CSP restrictions
+      const result = await this.callWorkerMethod('generateAnkiPackage', {
+        flashcardData,
+        deckName,
+        filename,
+        modelId: this.modelId,
+        deckId: this.deckId,
+        cardTemplate: this.cardTemplate
+      });
+      
+      if (result.success) {
+        return true;
+      } else {
+        throw new Error(result.error);
       }
       
-      // Create model with all required fields
-      const model = new Model({
-        id: this.modelId.toString(),
-        name: this.cardTemplate.name,
-        flds: this.cardTemplate.flds,
-        req: this.cardTemplate.req,
-        tmpls: this.cardTemplate.tmpls,
-        css: this.cardTemplate.css
-      });
-      
-      // Create deck
-      const deck = new Deck(this.deckId, deckName);
-      
-      // Add cards to deck
-      flashcardData.forEach((flashcard, index) => {
-        const note = model.note([
-          flashcard.topic || 'General',
-          flashcard.question || '',
-          flashcard.answer || ''
-        ], ['chatgpt', 'flashcard', flashcard.topic?.toLowerCase() || 'general']);
-        
-        deck.addNote(note);
-      });
-      
-      // Generate package and download
-      const pkg = new Package();
-      pkg.addDeck(deck);
-      pkg.writeToFile(filename);
-      
-      return true;
     } catch (error) {
       console.error('Error downloading Anki package:', error);
+      throw error;
+    }
+  }
+  
+  /**
+   * Fallback CSV download when Anki package generation fails
+   */
+  fallbackCSVDownload(flashcardData, filename) {
+    try {
+      // Convert to CSV format
+      const csvHeader = 'Topic,Question,Answer\n';
+      const csvRows = flashcardData.map(card => 
+        `"${(card.topic || 'General').replace(/"/g, '""')}","${(card.question || '').replace(/"/g, '""')}","${(card.answer || '').replace(/"/g, '""')}"`
+      ).join('\n');
+      
+      const csvData = csvHeader + csvRows;
+      
+      // Download CSV file
+      const blob = new Blob([csvData], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      
+      const link = document.createElement('a');
+      link.setAttribute('href', url);
+      link.setAttribute('download', filename.replace('.apkg', '.csv'));
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      console.log('CSV file downloaded as fallback');
+      return true;
+    } catch (error) {
+      console.error('Error in fallback CSV download:', error);
       throw error;
     }
   }
@@ -420,7 +478,17 @@ class AnkiPackageGenerator {
       
       if (validation.valid) {
         console.log('✓ Validation passed');
-        return true;
+        
+        // Test through worker
+        const result = await this.callWorkerMethod('testImplementation', {});
+        
+        if (result.success) {
+          console.log('✓ Worker test passed');
+          return true;
+        } else {
+          console.error('✗ Worker test failed:', result.error);
+          return false;
+        }
       } else {
         console.error('✗ Validation failed:', validation.errors);
         return false;

@@ -826,22 +826,25 @@
                     </div>
                     
                     <div class="setting-item">
-                        <h3>AnkiWeb Sync</h3>
-                        <p>Sync directly to your AnkiWeb account</p>
+                        <h3>Anki Addon Sync</h3>
+                        <p>Export to Downloads folder for automatic import via Anki addon</p>
                         <div class="form-group">
-                            <label class="form-label">AnkiWeb Username</label>
-                            <input type="text" class="form-input" id="ankiUsername" placeholder="Enter your AnkiWeb username">
+                            <label class="form-label">Addon Status</label>
+                            <p style="color: #6b7280; margin-bottom: 10px;">
+                                Install the ChatGPT Anki Sync addon in Anki to enable automatic imports
+                            </p>
                         </div>
-                        <div class="form-group">
-                            <label class="form-label">Password</label>
-                            <input type="password" class="form-input" id="ankiPassword" placeholder="Enter your password">
-                        </div>
-                        <button class="button button-primary" id="syncAnkiWeb">
+                        <button class="button button-primary" id="exportForAnkiAddon">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                                <path d="M12,18A6,6 0 0,1 6,12A6,6 0 0,1 12,6A6,6 0 0,1 18,12A6,6 0 0,1 12,18M20,12A8,8 0 0,0 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20A8,8 0 0,0 20,12Z"/>
+                                <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
                             </svg>
-                            Sync to AnkiWeb
+                            Export for Anki Addon
                         </button>
+                        <div style="margin-top: 10px;">
+                            <a href="#" id="addonInstructions" style="color: #10a37f; text-decoration: none; font-size: 14px;">
+                                📋 View addon installation instructions
+                            </a>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -952,10 +955,10 @@
     </div>
     
     <!-- Required dependencies for genanki-js -->
-    <script src="js/sql/sql-wasm.js"></script>
+    <script src="sql/sql.js"></script>
     <script src="jszip.min.js"></script>
-    <script src="FileSaver.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/krmanik/genanki-js/dist/genanki.js"></script>
+    <script src="filesaver/FileSaver.min.js"></script>
+    <script src="anki/genanki.js"></script>
     <script src="genanki.js"></script>
     <script src="config.js"></script>
 </body>
