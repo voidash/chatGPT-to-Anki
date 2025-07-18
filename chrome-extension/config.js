@@ -8,7 +8,15 @@ class ConfigManager {
       defaultTopic: 'General',
       detectionStrategy: 'auto',
       defaultExportFormat: 'csv',
-      ankiDeckName: 'ChatGPT Flashcards'
+      ankiDeckName: 'ChatGPT Flashcards',
+      customPrompt: `Based on the following conversation, create educational flashcards in CSV format. Each flashcard should have a clear question and a concise answer. Focus on key concepts, definitions, and important facts.
+
+Please format your response as a CSV with the following columns:
+- Topic (category/subject)
+- Question (front of flashcard)
+- Answer (back of flashcard)
+
+Generate 10-15 high-quality flashcards that capture the most important information from this conversation.`
     };
     
     this.init();
@@ -589,6 +597,7 @@ class ConfigManager {
     document.getElementById('detectionStrategy').value = this.settings.detectionStrategy;
     document.getElementById('defaultExportFormat').value = this.settings.defaultExportFormat;
     document.getElementById('ankiDeckName').value = this.settings.ankiDeckName;
+    document.getElementById('customPrompt').value = this.settings.customPrompt;
   }
   
   setupEventListeners() {
@@ -630,6 +639,17 @@ class ConfigManager {
       if (confirm('Are you sure you want to reset all settings to defaults?')) {
         this.resetSettings();
       }
+    });
+    
+    // Prompt customization
+    document.getElementById('resetPrompt').addEventListener('click', () => {
+      if (confirm('Are you sure you want to reset the prompt to the default template?')) {
+        this.resetPrompt();
+      }
+    });
+    
+    document.getElementById('testPrompt').addEventListener('click', () => {
+      this.testPrompt();
     });
   }
   
@@ -1120,7 +1140,8 @@ class ConfigManager {
         defaultTopic: document.getElementById('defaultTopic').value,
         detectionStrategy: document.getElementById('detectionStrategy').value,
         defaultExportFormat: document.getElementById('defaultExportFormat').value,
-        ankiDeckName: document.getElementById('ankiDeckName').value
+        ankiDeckName: document.getElementById('ankiDeckName').value,
+        customPrompt: document.getElementById('customPrompt').value
       };
       
       await this.setStorageData({ settings: this.settings });
@@ -1138,7 +1159,15 @@ class ConfigManager {
         defaultTopic: 'General',
         detectionStrategy: 'auto',
         defaultExportFormat: 'csv',
-        ankiDeckName: 'ChatGPT Flashcards'
+        ankiDeckName: 'ChatGPT Flashcards',
+        customPrompt: `Based on the following conversation, create educational flashcards in CSV format. Each flashcard should have a clear question and a concise answer. Focus on key concepts, definitions, and important facts.
+
+Please format your response as a CSV with the following columns:
+- Topic (category/subject)
+- Question (front of flashcard)
+- Answer (back of flashcard)
+
+Generate 10-15 high-quality flashcards that capture the most important information from this conversation.`
       };
       
       await this.setStorageData({ settings: this.settings });
@@ -1148,6 +1177,78 @@ class ConfigManager {
       console.error('Error resetting settings:', error);
       this.showAlert('Error resetting settings', 'error');
     }
+  }
+  
+  resetPrompt() {
+    const defaultPrompt = `Based on the following conversation, create educational flashcards in CSV format. Each flashcard should have a clear question and a concise answer. Focus on key concepts, definitions, and important facts.
+
+Please format your response as a CSV with the following columns:
+- Topic (category/subject)
+- Question (front of flashcard)
+- Answer (back of flashcard)
+
+Generate 10-15 high-quality flashcards that capture the most important information from this conversation.`;
+    
+    document.getElementById('customPrompt').value = defaultPrompt;
+    this.showAlert('Prompt reset to default', 'success');
+  }
+  
+  testPrompt() {
+    const prompt = document.getElementById('customPrompt').value;
+    
+    if (!prompt.trim()) {
+      this.showAlert('Please enter a prompt template first', 'error');
+      return;
+    }
+    
+    // Replace variables with sample data
+    const sampleConversation = `User: What is machine learning?
+AI: Machine learning is a subset of artificial intelligence that enables computers to learn and improve from experience without being explicitly programmed.
+
+User: How does it work?
+AI: Machine learning works by using algorithms to analyze data, identify patterns, and make predictions or decisions based on that analysis.`;
+    
+    const testPrompt = prompt
+      .replace('{CONVERSATION}', sampleConversation)
+      .replace('{PLATFORM}', 'ChatGPT')
+      .replace('{TIMESTAMP}', new Date().toISOString())
+      .replace('{CHAT_TITLE}', 'Machine Learning Discussion');
+    
+    // Add sample modal customization to show integration
+    const sampleModalCustomization = `
+Additional Instructions:
+Topic Focus: Programming concepts
+Question Type: Definition and explanation
+Difficulty Level: Beginner
+Card Count: 10
+Custom Instructions: Focus on simple explanations and practical examples`;
+    
+    const finalTestPrompt = testPrompt + sampleModalCustomization;
+    
+    // Create a modal or alert to show the test prompt
+    const testModal = document.createElement('div');
+    testModal.className = 'edit-modal active';
+    testModal.innerHTML = `
+      <div class="edit-modal-content" style="max-width: 700px;">
+        <div class="edit-modal-header">
+          <h3>Test Prompt Preview</h3>
+          <button class="edit-modal-close" onclick="this.closest('.edit-modal').remove()">×</button>
+        </div>
+        <div class="edit-form-group">
+          <label class="edit-form-label">Base Template (with variables replaced):</label>
+          <textarea class="edit-form-input" rows="10" readonly>${testPrompt}</textarea>
+        </div>
+        <div class="edit-form-group">
+          <label class="edit-form-label">Final Prompt (with modal integration):</label>
+          <textarea class="edit-form-input" rows="15" readonly>${finalTestPrompt}</textarea>
+        </div>
+        <div class="edit-modal-actions">
+          <button type="button" class="button button-primary" onclick="this.closest('.edit-modal').remove()">Close</button>
+        </div>
+      </div>
+    `;
+    
+    document.body.appendChild(testModal);
   }
   
   showAlert(message, type) {

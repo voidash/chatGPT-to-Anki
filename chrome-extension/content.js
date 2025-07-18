@@ -1,41 +1,27 @@
 // Chat to Anki Flashcards - Content Script
-// Future-proof ChatGPT chat detection and flashcard generation
+// Future-proof ChatGPT and Claude.ai chat detection and flashcard generation
+
+console.log('Anki Extension: Content script loading...');
+console.log('Anki Extension: Current URL:', window.location.href);
+console.log('Anki Extension: Hostname:', window.location.hostname);
+console.log('Anki Extension: User agent:', navigator.userAgent);
+console.log('Anki Extension: Document ready state:', document.readyState);
+
+// Add a simple test to verify the script is running
+window.ankiExtensionTest = 'LOADED';
+console.log('Anki Extension: Test marker set');
 
 class ChatToAnkiExtension {
   constructor() {
-    this.chatDetectionStrategies = [
-      // Strategy 1: Data attributes (most reliable)
-      {
-        name: 'data-testid',
-        selector: '[data-testid*="chat"], [data-testid*="conversation"]',
-        linkSelector: 'a[href*="/c/"]'
-      },
-      // Strategy 2: ARIA labels
-      {
-        name: 'aria-labels',
-        selector: '[role="button"][aria-label*="chat"], [role="menuitem"][aria-label*="conversation"]',
-        linkSelector: 'a[href*="/c/"]'
-      },
-      // Strategy 3: URL patterns in links
-      {
-        name: 'url-pattern',
-        selector: 'a[href*="/c/"]',
-        linkSelector: 'a[href*="/c/"]'
-      },
-      // Strategy 4: Structural patterns
-      {
-        name: 'structural',
-        selector: 'nav li, .sidebar li, [class*="sidebar"] li',
-        linkSelector: 'a[href*="/c/"]'
-      },
-      // Strategy 5: Text content fallback
-      {
-        name: 'text-content',
-        selector: '*',
-        linkSelector: 'a[href*="/c/"]',
-        textFilter: true
-      }
-    ];
+    console.log('Anki Extension: Constructor starting...');
+    // Detect current platform
+    this.platform = this.detectPlatform();
+    console.log('Anki Extension: Platform detected as:', this.platform);
+    
+    // Platform-specific chat detection strategies
+    console.log('Anki Extension: Getting detection strategies...');
+    this.chatDetectionStrategies = this.getDetectionStrategies();
+    console.log('Anki Extension: Detection strategies loaded:', this.chatDetectionStrategies.length);
     
     this.selectedChats = new Set();
     this.isProcessing = false;
@@ -46,8 +32,313 @@ class ChatToAnkiExtension {
     this.init();
   }
   
+  detectPlatform() {
+    const hostname = window.location.hostname;
+    console.log('Anki Extension: Detecting platform for hostname:', hostname);
+    console.log('Anki Extension: Full URL:', window.location.href);
+    
+    if (hostname.includes('claude.ai')) {
+      console.log('Anki Extension: Detected Claude.ai platform');
+      return 'claude';
+    } else if (hostname.includes('chatgpt.com') || hostname.includes('chat.openai.com')) {
+      console.log('Anki Extension: Detected ChatGPT platform');
+      return 'chatgpt';
+    } else if (hostname.includes('perplexity.ai') || hostname.includes('www.perplexity.ai')) {
+      console.log('Anki Extension: Detected Perplexity platform');
+      return 'perplexity';
+    }
+    console.log('Anki Extension: Unknown platform detected for hostname:', hostname);
+    return 'unknown';
+  }
+
+  getDetectionStrategies() {
+    console.log('Anki Extension: Getting detection strategies for platform:', this.platform);
+    switch (this.platform) {
+      case 'claude':
+        return [
+          // Claude.ai specific strategies
+          {
+            name: 'claude-sidebar-chats',
+            selector: 'nav[aria-label="Sidebar"] a[href*="/chat/"]',
+            linkSelector: 'a[href*="/chat/"]'
+          },
+          {
+            name: 'claude-data-testid',
+            selector: '[data-testid*="chat"], [data-testid*="conversation"]',
+            linkSelector: 'a[href*="/chat/"]'
+          },
+          {
+            name: 'claude-recent-chats',
+            selector: 'nav a[href*="/chat/"]',
+            linkSelector: 'a[href*="/chat/"]'
+          }
+        ];
+      
+      case 'perplexity':
+        return [
+          // Perplexity.ai specific strategies
+          {
+            name: 'perplexity-history-threads',
+            selector: '[class*="group/history"] a[href*="/search/"]',
+            linkSelector: 'a[href*="/search/"]'
+          },
+          {
+            name: 'perplexity-thread-testid',
+            selector: '[data-testid*="thread-title"]',
+            linkSelector: 'a[href*="/search/"]'
+          },
+          {
+            name: 'perplexity-search-links',
+            selector: 'a[href*="/search/"]',
+            linkSelector: 'a[href*="/search/"]'
+          },
+          {
+            name: 'perplexity-library-section',
+            selector: '[data-testid="library-button"]',
+            linkSelector: 'a[href*="/search/"]'
+          }
+        ];
+      
+      case 'chatgpt':
+      case 'unknown':
+      default:
+        console.log('Anki Extension: Using default (ChatGPT) detection strategies');
+        return [
+          // ChatGPT specific strategies
+          {
+            name: 'data-testid',
+            selector: '[data-testid*="chat"], [data-testid*="conversation"]',
+            linkSelector: 'a[href*="/c/"]'
+          },
+          {
+            name: 'aria-labels',
+            selector: '[role="button"][aria-label*="chat"], [role="menuitem"][aria-label*="conversation"]',
+            linkSelector: 'a[href*="/c/"]'
+          },
+          {
+            name: 'url-pattern',
+            selector: 'a[href*="/c/"]',
+            linkSelector: 'a[href*="/c/"]'
+          },
+          {
+            name: 'structural',
+            selector: 'nav li, .sidebar li, [class*="sidebar"] li',
+            linkSelector: 'a[href*="/c/"]'
+          },
+          {
+            name: 'text-content',
+            selector: '*',
+            linkSelector: 'a[href*="/c/"]',
+            textFilter: true
+          }
+        ];
+    }
+  }
+
+  getLinkPattern() {
+    switch (this.platform) {
+      case 'claude':
+        return 'a[href*="/chat/"]';
+      case 'perplexity':
+        return 'a[href*="/search/"]';
+      case 'chatgpt':
+      case 'unknown':
+      default:
+        return 'a[href*="/c/"]';
+    }
+  }
+
+  getSidebarSelectors() {
+    switch (this.platform) {
+      case 'claude':
+        return [
+          'nav[aria-label="Sidebar"]',
+          'nav.h-screen.flex.flex-col',
+          'nav.h-screen',
+          'div.fixed.z-sidebar nav',
+          'nav'
+        ];
+      case 'perplexity':
+        return [
+          'aside',
+          'nav[class*="sidebar"]',
+          '[class*="sidebar"]',
+          '[class*="group/history"]',
+          'nav'
+        ];
+      case 'chatgpt':
+      case 'unknown':
+      default:
+        return [
+          'nav',
+          '[class*="sidebar"]',
+          '[data-testid*="sidebar"]',
+          '.flex.h-full.w-full.flex-col'
+        ];
+    }
+  }
+
+  getRetryDelay() {
+    switch (this.platform) {
+      case 'claude':
+        return 3000;
+      case 'perplexity':
+        return 2500;
+      case 'chatgpt':
+      case 'unknown':
+      default:
+        return 2000;
+    }
+  }
+
+  getPlatformName() {
+    switch (this.platform) {
+      case 'claude':
+        return 'Claude.ai';
+      case 'perplexity':
+        return 'Perplexity.ai';
+      case 'chatgpt':
+      case 'unknown':
+      default:
+        return 'ChatGPT';
+    }
+  }
+
+  getInputSelectors() {
+    switch (this.platform) {
+      case 'claude':
+        return [
+          // Claude.ai specific selectors
+          'div[contenteditable="true"].ProseMirror',
+          'div.ProseMirror[contenteditable="true"]',
+          '[contenteditable="true"]',
+          'textarea[placeholder*="Talk"]',
+          'textarea[placeholder*="Message"]',
+          'textarea',
+          'input[type="text"]'
+        ];
+      case 'perplexity':
+        return [
+          // Perplexity.ai specific selectors
+          'textarea[placeholder*="Ask a follow-up"]',
+          'textarea[id="ask-input"]',
+          'textarea[placeholder*="follow"]',
+          'textarea[placeholder*="Ask"]',
+          'textarea[placeholder*="search"]',
+          'textarea[placeholder*="query"]',
+          'textarea',
+          'input[type="text"]',
+          '[contenteditable="true"]'
+        ];
+      case 'chatgpt':
+      case 'unknown':
+      default:
+        return [
+          // ChatGPT specific selectors
+          '#prompt-textarea',
+          'div[contenteditable="true"]#prompt-textarea',
+          'div.ProseMirror[contenteditable="true"]',
+          'textarea[placeholder*="Ask"]',
+          'textarea[placeholder*="Message"]',
+          '[contenteditable="true"]',
+          'textarea',
+          'input[type="text"]'
+        ];
+    }
+  }
+
+  getSendButtonSelectors() {
+    switch (this.platform) {
+      case 'claude':
+        return [
+          // Claude.ai specific selectors
+          'button[aria-label*="Send"]',
+          'button[aria-label*="send"]',
+          'button:has(svg[viewBox*="24"])',
+          'button[type="submit"]',
+          'form button[type="submit"]',
+          'form button:last-child',
+          'button:has(svg)',
+          'button[class*="send"]',
+          'button[data-testid*="send"]'
+        ];
+      case 'perplexity':
+        return [
+          // Perplexity.ai specific selectors
+          'button[aria-label*="Submit"]',
+          'button[aria-label*="Search"]',
+          'button[aria-label*="Ask"]',
+          'button[type="submit"]',
+          'form button[type="submit"]',
+          'form button:last-child',
+          'button:has(svg)',
+          'button[class*="submit"]',
+          'button[class*="search"]',
+          'div[class*="input"] + button',
+          'textarea + button'
+        ];
+      case 'chatgpt':
+      case 'unknown':
+      default:
+        return [
+          // ChatGPT specific selectors
+          '[data-testid="send-button"]',
+          'button[aria-label*="Send"]',
+          'button[aria-label*="send"]',
+          'button[type="submit"]',
+          'button[data-testid*="send"]',
+          'button[class*="send"]',
+          'button svg[data-testid*="send"]',
+          'button:has(svg[data-testid*="send"])',
+          'button:has(svg[class*="send"])',
+          'form button[type="submit"]',
+          'form button:last-child',
+          'div[class*="group"] button:last-child',
+          'div[class*="flex"] button:last-child',
+          'div[class*="input"] + button',
+          'div[class*="textarea"] + button'
+        ];
+    }
+  }
+
+  getResponseSelectors() {
+    switch (this.platform) {
+      case 'claude':
+        return [
+          '.font-claude-message',
+          '[data-is-streaming="false"]',
+          '.font-claude-message .grid-cols-1',
+          '.font-claude-message div'
+        ];
+      case 'perplexity':
+        return [
+          '.prose.text-pretty',
+          '.prose',
+          '[id^="markdown-content-"]',
+          '.relative.font-sans.text-base',
+          '.min-w-0.break-words',
+          '[data-testid="search-result"]',
+          '[data-testid="answer"]',
+          '.answer-content',
+          '.search-result',
+          '.response'
+        ];
+      case 'chatgpt':
+      case 'unknown':
+      default:
+        return [
+          '[data-message-author-role="assistant"]',
+          '.message.assistant',
+          '[class*="assistant"]',
+          '.response'
+        ];
+    }
+  }
+
   init() {
+    console.log('Anki Extension: Initializing for platform:', this.platform);
     this.waitForPageLoad().then(() => {
+      console.log('Anki Extension: Page loaded, setting up extension');
       this.setupChatDetection();
       this.addExportButton();
       this.setupMutationObserver();
@@ -101,8 +392,9 @@ class ChatToAnkiExtension {
         // For text content strategy, look for chat-like patterns
         const text = element.textContent?.trim();
         if (text && text.length > 0 && text.length < 100) {
+          const linkPattern = this.getLinkPattern();
           const link = element.querySelector(strategy.linkSelector) || 
-                      element.closest('a[href*="/c/"]');
+                      element.closest(linkPattern);
           if (link) {
             chatData = {
               element: element,
@@ -114,9 +406,10 @@ class ChatToAnkiExtension {
         }
       } else {
         // For other strategies, look for links within or around elements
+        const linkPattern = this.getLinkPattern();
         const link = element.querySelector(strategy.linkSelector) || 
-                    element.closest('a[href*="/c/"]') ||
-                    element.querySelector('a[href*="/c/"]');
+                    element.closest(linkPattern) ||
+                    element.querySelector(linkPattern);
         
         if (link) {
           const title = this.extractChatTitle(element, link);
@@ -170,27 +463,48 @@ class ChatToAnkiExtension {
   }
   
   extractChatId(url) {
-    const match = url.match(/\/c\/([a-zA-Z0-9-_]+)/);
-    return match ? match[1] : null;
+    switch (this.platform) {
+      case 'claude':
+        const claudeMatch = url.match(/\/chat\/([a-zA-Z0-9-_]+)/);
+        return claudeMatch ? claudeMatch[1] : null;
+      case 'perplexity':
+        const perplexityMatch = url.match(/\/search\/[^\/]+-([a-zA-Z0-9-_]+)/);
+        return perplexityMatch ? perplexityMatch[1] : null;
+      case 'chatgpt':
+      case 'unknown':
+      default:
+        const chatgptMatch = url.match(/\/c\/([a-zA-Z0-9-_]+)/);
+        return chatgptMatch ? chatgptMatch[1] : null;
+    }
   }
   
   addExportButton() {
-    // Look for sidebar container
-    const sidebarSelectors = [
-      'nav',
-      '[class*="sidebar"]',
-      '[data-testid*="sidebar"]',
-      '.flex.h-full.w-full.flex-col'
-    ];
+    console.log('Anki Extension: Adding export button for platform:', this.platform);
+    
+    // Look for sidebar container - platform specific
+    const sidebarSelectors = this.getSidebarSelectors();
     
     let sidebar = null;
     for (const selector of sidebarSelectors) {
       sidebar = document.querySelector(selector);
+      console.log('Anki Extension: Trying selector:', selector, 'Found:', !!sidebar);
       if (sidebar) break;
     }
     
     if (!sidebar) {
-      console.warn('Could not find sidebar to add export button');
+      console.warn('Anki Extension: Could not find sidebar to add export button');
+      // Try again after a delay, with more attempts for Claude.ai
+      const retryDelay = this.getRetryDelay();
+      setTimeout(() => this.addExportButton(), retryDelay);
+      return;
+    }
+    
+    console.log('Anki Extension: Found sidebar, adding export button');
+    
+    // Check if button already exists
+    const existingButton = document.getElementById('anki-export-btn');
+    if (existingButton) {
+      console.log('Anki Extension: Export button already exists');
       return;
     }
     
@@ -206,10 +520,38 @@ class ChatToAnkiExtension {
     this.exportButton.className = 'anki-export-button';
     this.exportButton.addEventListener('click', () => this.openChatSelectionModal());
     
-    // Try to insert button at the top of sidebar
-    const insertTarget = sidebar.querySelector('.flex.flex-col') || sidebar.firstElementChild || sidebar;
-    if (insertTarget) {
-      insertTarget.insertBefore(this.exportButton, insertTarget.firstChild);
+    // Try to insert button at the top of sidebar - platform specific
+    let insertTarget;
+    if (this.platform === 'claude') {
+      // For Claude, try multiple insertion strategies
+      const topButtonsSection = sidebar.querySelector('.flex.w-full.items-center.gap-px.p-2');
+      const flexContainer = sidebar.querySelector('.flex.items-center');
+      
+      if (topButtonsSection) {
+        // Insert after the top buttons section
+        topButtonsSection.parentNode.insertBefore(this.exportButton, topButtonsSection.nextSibling);
+        console.log('Anki Extension: Inserted button after top buttons section');
+        return;
+      } else if (flexContainer) {
+        // Insert after the flex container
+        flexContainer.parentNode.insertBefore(this.exportButton, flexContainer.nextSibling);
+        console.log('Anki Extension: Inserted button after flex container');
+        return;
+      } else {
+        // Insert at the beginning of sidebar
+        sidebar.insertBefore(this.exportButton, sidebar.firstChild);
+        console.log('Anki Extension: Inserted button at beginning of sidebar');
+        return;
+      }
+    } else {
+      // For ChatGPT
+      insertTarget = sidebar.querySelector('.flex.flex-col') || sidebar.firstElementChild || sidebar;
+      if (insertTarget && insertTarget.parentNode) {
+        insertTarget.parentNode.insertBefore(this.exportButton, insertTarget.nextSibling);
+      } else if (insertTarget) {
+        insertTarget.insertBefore(this.exportButton, insertTarget.firstChild);
+      }
+      console.log('Anki Extension: Inserted button in ChatGPT sidebar');
     }
   }
   
@@ -220,7 +562,8 @@ class ChatToAnkiExtension {
     
     const chats = this.detectChats();
     if (chats.length === 0) {
-      alert('No chats found. Please make sure you are on the ChatGPT main page.');
+      const platformName = this.getPlatformName();
+      alert(`No chats found. Please make sure you are on the ${platformName} main page.`);
       return;
     }
     
@@ -439,57 +782,159 @@ class ChatToAnkiExtension {
       return Promise.resolve();
     }
     
-    console.log('Navigating to chat:', url);
+    console.log(`Navigating to chat for ${this.platform}:`, url);
     
-    // Use a more gentle navigation approach
-    try {
-      // First try using history API if possible
-      if (url.includes(window.location.origin)) {
-        const path = url.replace(window.location.origin, '');
-        window.history.pushState({}, '', path);
+    // Platform-specific navigation
+    if (this.platform === 'claude') {
+      // For Claude.ai, we need to click on the chat link in the sidebar
+      // because URL changes don't work properly
+      const chatId = this.extractChatId(url);
+      if (chatId) {
+        console.log('Looking for Claude chat link with ID:', chatId);
         
-        // Dispatch a popstate event to trigger any route handlers
-        window.dispatchEvent(new PopStateEvent('popstate'));
-        
-        // Wait for navigation to complete
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        // If URL didn't change, fall back to location.href
-        if (window.location.href !== url) {
-          console.log('History API navigation failed, using location.href');
-          window.location.href = url;
+        // Try to find the chat link in the sidebar
+        const chatLink = document.querySelector(`a[href*="/chat/${chatId}"]`);
+        if (chatLink) {
+          console.log('Found Claude chat link, clicking:', chatLink);
+          chatLink.click();
+          
+          // Wait for navigation to complete
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          
+          // Verify we're on the correct page
+          if (window.location.href.includes(chatId)) {
+            console.log('Claude navigation successful');
+            return Promise.resolve();
+          } else {
+            console.log('Claude navigation failed, falling back to URL change');
+          }
+        } else {
+          console.log('Could not find Claude chat link, falling back to URL change');
         }
-      } else {
-        // External URL, use location.href
-        window.location.href = url;
       }
       
+      // Fallback to URL change for Claude
+      window.location.href = url;
       return new Promise(resolve => {
         const checkUrl = () => {
-          if (window.location.href === url) {
+          if (window.location.href.includes(chatId)) {
             resolve();
           } else {
             setTimeout(checkUrl, 100);
           }
         };
-        checkUrl();
+        setTimeout(checkUrl, 1000);
       });
-    } catch (error) {
-      console.error('Navigation error:', error);
-      // Fallback to direct navigation
+    } else if (this.platform === 'perplexity') {
+      // For Perplexity.ai, we need to click on the search link in the sidebar
+      // similar to Claude.ai
+      const chatId = this.extractChatId(url);
+      if (chatId) {
+        console.log('Looking for Perplexity search link with ID:', chatId);
+        
+        // Try to find the search link in the sidebar
+        const searchLink = document.querySelector(`a[href*="/search/"][href*="${chatId}"]`);
+        if (searchLink) {
+          console.log('Found Perplexity search link, clicking:', searchLink);
+          searchLink.click();
+          
+          // Wait for navigation to complete
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          
+          // Verify we're on the correct page
+          if (window.location.href.includes(chatId)) {
+            console.log('Perplexity navigation successful');
+            return Promise.resolve();
+          } else {
+            console.log('Perplexity navigation failed, falling back to URL change');
+          }
+        } else {
+          console.log('Could not find Perplexity search link, falling back to URL change');
+        }
+      }
+      
+      // Fallback to URL change for Perplexity
       window.location.href = url;
-      return Promise.resolve();
+      return new Promise(resolve => {
+        const checkUrl = () => {
+          if (window.location.href.includes(chatId)) {
+            resolve();
+          } else {
+            setTimeout(checkUrl, 100);
+          }
+        };
+        setTimeout(checkUrl, 1000);
+      });
+    } else {
+      // For ChatGPT and other platforms, use the existing logic
+      try {
+        // First try using history API if possible
+        if (url.includes(window.location.origin)) {
+          const path = url.replace(window.location.origin, '');
+          window.history.pushState({}, '', path);
+          
+          // Dispatch a popstate event to trigger any route handlers
+          window.dispatchEvent(new PopStateEvent('popstate'));
+          
+          // Wait for navigation to complete
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          
+          // If URL didn't change, fall back to location.href
+          if (window.location.href !== url) {
+            console.log('History API navigation failed, using location.href');
+            window.location.href = url;
+          }
+        } else {
+          // External URL, use location.href
+          window.location.href = url;
+        }
+        
+        return new Promise(resolve => {
+          const checkUrl = () => {
+            if (window.location.href === url) {
+              resolve();
+            } else {
+              setTimeout(checkUrl, 100);
+            }
+          };
+          checkUrl();
+        });
+      } catch (error) {
+        console.error('Navigation error:', error);
+        // Fallback to direct navigation
+        window.location.href = url;
+        return Promise.resolve();
+      }
     }
   }
   
   async waitForChatLoad() {
     return new Promise(resolve => {
+      console.log(`Waiting for ${this.platform} chat to load...`);
+      
       const checkLoad = () => {
         const inputBox = this.findInputBox();
-        if (inputBox) {
-          resolve();
+        
+        if (this.platform === 'claude') {
+          // For Claude, also check that we're not on the new chat page
+          const isNewChatPage = window.location.href.includes('/new') || 
+                               window.location.href.endsWith('/recents') ||
+                               document.querySelector('[data-testid="new-chat"]');
+          
+          if (inputBox && !isNewChatPage) {
+            console.log('Claude chat loaded and ready');
+            resolve();
+          } else {
+            setTimeout(checkLoad, 200);
+          }
         } else {
-          setTimeout(checkLoad, 100);
+          // For other platforms, just check for input box
+          if (inputBox) {
+            console.log(`${this.platform} chat loaded and ready`);
+            resolve();
+          } else {
+            setTimeout(checkLoad, 100);
+          }
         }
       };
       checkLoad();
@@ -497,24 +942,17 @@ class ChatToAnkiExtension {
   }
   
   findInputBox() {
-    const inputSelectors = [
-      '#prompt-textarea',
-      'div[contenteditable="true"]#prompt-textarea',
-      'div.ProseMirror[contenteditable="true"]',
-      'textarea[placeholder*="Ask"]',
-      'textarea[placeholder*="Message"]',
-      '[contenteditable="true"]',
-      'textarea',
-      'input[type="text"]'
-    ];
+    const inputSelectors = this.getInputSelectors();
     
     for (const selector of inputSelectors) {
       const element = document.querySelector(selector);
       if (element && this.isElementVisible(element)) {
+        console.log(`Found input box with selector: ${selector}`);
         return element;
       }
     }
     
+    console.warn('No input box found for platform:', this.platform);
     return null;
   }
   
@@ -531,13 +969,17 @@ class ChatToAnkiExtension {
   }
   
   async generateFlashcards() {
+    console.log(`Starting flashcard generation for ${this.platform}...`);
+    
     const inputBox = this.findInputBox();
     if (!inputBox) {
-      throw new Error('Could not find input box');
+      throw new Error(`Could not find input box for ${this.platform}`);
     }
     
+    console.log(`Found input box for ${this.platform}:`, inputBox);
+    
     // Generate prompt using current form values when actually generating flashcards
-    const prompt = this.generateCustomPrompt();
+    const prompt = await this.generateCustomPrompt();
     
     // Clear input and add prompt gently
     this.gentleClearElement(inputBox);
@@ -651,7 +1093,19 @@ class ChatToAnkiExtension {
   }
   
   insertTextIntoContentEditable(element, text) {
-    console.log('Inserting text into contenteditable:', element, text);
+    console.log('Inserting text into element:', element, text);
+    
+    // Check if it's a textarea or input element first
+    if (element.tagName === 'TEXTAREA' || element.tagName === 'INPUT') {
+      console.log('Detected textarea/input, using direct value assignment');
+      element.value = text;
+      element.focus();
+      element.setSelectionRange(text.length, text.length);
+      element.dispatchEvent(new Event('input', { bubbles: true }));
+      element.dispatchEvent(new Event('change', { bubbles: true }));
+      console.log('Textarea insertion complete, content:', element.value);
+      return;
+    }
     
     // Focus first but don't trigger unnecessary events
     element.focus();
@@ -729,34 +1183,58 @@ class ChatToAnkiExtension {
   gentleTextInsertion(element, text) {
     console.log('Using gentle insertion method');
     
-    // Clear existing content gently
-    element.innerHTML = '';
-    
-    // Create paragraph element
-    const p = document.createElement('p');
-    p.textContent = text;
-    element.appendChild(p);
-    
-    // Set cursor at end
-    const range = document.createRange();
-    range.selectNodeContents(p);
-    range.collapse(false);
-    const selection = window.getSelection();
-    selection.removeAllRanges();
-    selection.addRange(range);
-    
-    // Trigger only essential events to prevent reload
-    element.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
-    
-    console.log('Gentle insertion complete, content:', element.textContent);
+    // Check if it's a textarea or input element
+    if (element.tagName === 'TEXTAREA' || element.tagName === 'INPUT') {
+      console.log('Inserting text into textarea/input element');
+      
+      // Clear existing content and set new value
+      element.value = text;
+      
+      // Set cursor at end
+      element.focus();
+      element.setSelectionRange(text.length, text.length);
+      
+      // Trigger essential events
+      element.dispatchEvent(new Event('input', { bubbles: true }));
+      element.dispatchEvent(new Event('change', { bubbles: true }));
+      
+      console.log('Gentle insertion complete, content:', element.value);
+    } else {
+      console.log('Inserting text into contenteditable element');
+      
+      // Clear existing content gently
+      element.innerHTML = '';
+      
+      // Create paragraph element
+      const p = document.createElement('p');
+      p.textContent = text;
+      element.appendChild(p);
+      
+      // Set cursor at end
+      const range = document.createRange();
+      range.selectNodeContents(p);
+      range.collapse(false);
+      const selection = window.getSelection();
+      selection.removeAllRanges();
+      selection.addRange(range);
+      
+      // Trigger only essential events to prevent reload
+      element.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
+      
+      console.log('Gentle insertion complete, content:', element.textContent);
+    }
   }
   
   async sendPrompt(inputBox) {
+    console.log(`Sending prompt for ${this.platform}...`);
+    
     // Look for send button
     const sendButton = this.findSendButton();
     if (sendButton) {
+      console.log(`Found send button for ${this.platform}:`, sendButton);
       sendButton.click();
     } else {
+      console.log(`No send button found for ${this.platform}, using Enter key`);
       // Fallback: simulate Enter key
       const enterEvent = new KeyboardEvent('keydown', {
         key: 'Enter',
@@ -770,32 +1248,7 @@ class ChatToAnkiExtension {
   }
   
   findSendButton() {
-    const buttonSelectors = [
-      // Primary ChatGPT selectors
-      '[data-testid="send-button"]',
-      'button[aria-label*="Send"]',
-      'button[aria-label*="send"]',
-      
-      // Secondary selectors
-      'button[type="submit"]',
-      'button[data-testid*="send"]',
-      'button[class*="send"]',
-      
-      // SVG-based selectors
-      'button svg[data-testid*="send"]',
-      'button:has(svg[data-testid*="send"])',
-      'button:has(svg[class*="send"])',
-      
-      // Form-based selectors
-      'form button[type="submit"]',
-      'form button:last-child',
-      
-      // Structural selectors for ChatGPT
-      'div[class*="group"] button:last-child',
-      'div[class*="flex"] button:last-child',
-      'div[class*="input"] + button',
-      'div[class*="textarea"] + button'
-    ];
+    const buttonSelectors = this.getSendButtonSelectors();
     
     console.log('Searching for send button...');
     
@@ -865,7 +1318,9 @@ class ChatToAnkiExtension {
   
   async waitForResponse() {
     return new Promise((resolve) => {
-      console.log('Waiting for ChatGPT response...');
+      const platformName = this.getPlatformName();
+      console.log(`Waiting for ${platformName} response...`);
+      
       let previousResponseLength = 0;
       let stableCount = 0;
       let maxWaitTime = 60000; // 60 seconds max wait
@@ -879,46 +1334,163 @@ class ChatToAnkiExtension {
           return;
         }
         
-        // Look for the latest response
-        const responseSelectors = [
-          '[data-message-author-role="assistant"]',
-          '.message.assistant',
-          '[class*="assistant"]',
-          '.response'
-        ];
-        
-        let latestResponse = null;
-        for (const selector of responseSelectors) {
-          const elements = document.querySelectorAll(selector);
-          if (elements.length > 0) {
-            latestResponse = elements[elements.length - 1];
-            break;
-          }
-        }
-        
-        if (latestResponse && latestResponse.textContent.trim()) {
-          const currentResponseLength = latestResponse.textContent.trim().length;
-          
-          // Check if response is still growing (streaming)
-          if (currentResponseLength > previousResponseLength) {
-            console.log(`Response growing: ${currentResponseLength} chars`);
-            previousResponseLength = currentResponseLength;
-            stableCount = 0;
+        // Platform-specific streaming detection
+        if (this.platform === 'claude') {
+          // Claude.ai specific: Check for streaming attribute
+          const streamingElement = document.querySelector('[data-is-streaming="true"]');
+          if (streamingElement) {
+            console.log('Claude is still streaming, waiting...');
             setTimeout(checkForResponse, 1000);
-          } else {
-            // Response hasn't grown, check if it's stable
-            stableCount++;
-            if (stableCount >= 3) {
-              // Response has been stable for 3 seconds, it's complete
-              console.log('Response appears complete, resolving');
-              resolve(latestResponse.textContent.trim());
-            } else {
+            return;
+          }
+          
+          // Additional check: Look for any elements that might be streaming
+          const allStreamingElements = document.querySelectorAll('[data-is-streaming]');
+          const hasActiveStreaming = Array.from(allStreamingElements).some(el => 
+            el.getAttribute('data-is-streaming') === 'true'
+          );
+          
+          if (hasActiveStreaming) {
+            console.log('Claude has active streaming elements, waiting...');
+            setTimeout(checkForResponse, 1000);
+            return;
+          }
+          
+          // Check if Claude is still generating (no streaming attribute but response is growing)
+          const claudeResponseSelectors = [
+            '.font-claude-message',
+            '[data-is-streaming="false"]',
+            '.font-claude-message div div',
+            '.font-claude-message .grid-cols-1'
+          ];
+          
+          let latestResponse = null;
+          for (const selector of claudeResponseSelectors) {
+            const elements = document.querySelectorAll(selector);
+            if (elements.length > 0) {
+              latestResponse = elements[elements.length - 1];
+              break;
+            }
+          }
+          
+          if (latestResponse && latestResponse.textContent.trim()) {
+            const currentResponseLength = latestResponse.textContent.trim().length;
+            
+            // For Claude, also check if response is still growing
+            if (currentResponseLength > previousResponseLength) {
+              console.log(`Claude response growing: ${currentResponseLength} chars`);
+              previousResponseLength = currentResponseLength;
+              stableCount = 0;
               setTimeout(checkForResponse, 1000);
+              return;
+            } else {
+              // Response hasn't grown, check if it's stable
+              stableCount++;
+              if (stableCount >= 5) { // Wait longer for Claude to be sure
+                console.log('Claude response appears complete, resolving');
+                resolve(latestResponse.textContent.trim());
+                return;
+              } else {
+                console.log(`Claude response stable for ${stableCount} seconds, waiting...`);
+                setTimeout(checkForResponse, 1000);
+                return;
+              }
+            }
+          }
+        } else if (this.platform === 'perplexity') {
+          // Perplexity.ai specific logic
+          // Check for streaming animations (fade-in classes indicate streaming)
+          const streamingElements = document.querySelectorAll('.animate-in.fade-in-25');
+          if (streamingElements.length > 0) {
+            console.log('Perplexity is still streaming (found animate-in elements), waiting...');
+            setTimeout(checkForResponse, 1000);
+            return;
+          }
+          
+          const responseSelectors = [
+            '.prose.text-pretty',
+            '.prose',
+            '[id^="markdown-content-"]',
+            '.relative.font-sans.text-base',
+            '.min-w-0.break-words'
+          ];
+          
+          let latestResponse = null;
+          for (const selector of responseSelectors) {
+            const elements = document.querySelectorAll(selector);
+            if (elements.length > 0) {
+              latestResponse = elements[elements.length - 1];
+              break;
+            }
+          }
+          
+          if (latestResponse && latestResponse.textContent.trim()) {
+            const currentResponseLength = latestResponse.textContent.trim().length;
+            
+            // Check if response is still growing (streaming)
+            if (currentResponseLength > previousResponseLength) {
+              console.log(`Perplexity response growing: ${currentResponseLength} chars`);
+              previousResponseLength = currentResponseLength;
+              stableCount = 0;
+              setTimeout(checkForResponse, 1000);
+              return;
+            } else {
+              // Response hasn't grown, check if it's stable
+              stableCount++;
+              if (stableCount >= 3) { // Less wait time for Perplexity
+                console.log('Perplexity response appears complete, resolving');
+                resolve(latestResponse.textContent.trim());
+                return;
+              } else {
+                console.log(`Perplexity response stable for ${stableCount} seconds, waiting...`);
+                setTimeout(checkForResponse, 1000);
+                return;
+              }
             }
           }
         } else {
-          setTimeout(checkForResponse, 1000);
+          // ChatGPT specific logic (existing)
+          const responseSelectors = [
+            '[data-message-author-role="assistant"]',
+            '.message.assistant',
+            '[class*="assistant"]',
+            '.response'
+          ];
+          
+          let latestResponse = null;
+          for (const selector of responseSelectors) {
+            const elements = document.querySelectorAll(selector);
+            if (elements.length > 0) {
+              latestResponse = elements[elements.length - 1];
+              break;
+            }
+          }
+          
+          if (latestResponse && latestResponse.textContent.trim()) {
+            const currentResponseLength = latestResponse.textContent.trim().length;
+            
+            // Check if response is still growing (streaming)
+            if (currentResponseLength > previousResponseLength) {
+              console.log(`Response growing: ${currentResponseLength} chars`);
+              previousResponseLength = currentResponseLength;
+              stableCount = 0;
+              setTimeout(checkForResponse, 1000);
+              return;
+            } else {
+              // Response hasn't grown, check if it's stable
+              stableCount++;
+              if (stableCount >= 3) {
+                // Response has been stable for 3 seconds, it's complete
+                console.log('Response appears complete, resolving');
+                resolve(latestResponse.textContent.trim());
+                return;
+              }
+            }
+          }
         }
+        
+        // Continue waiting
+        setTimeout(checkForResponse, 1000);
       };
       
       checkForResponse();
@@ -926,12 +1498,7 @@ class ChatToAnkiExtension {
   }
   
   getCurrentResponse() {
-    const responseSelectors = [
-      '[data-message-author-role="assistant"]',
-      '.message.assistant',
-      '[class*="assistant"]',
-      '.response'
-    ];
+    const responseSelectors = this.getResponseSelectors();
     
     for (const selector of responseSelectors) {
       const elements = document.querySelectorAll(selector);
@@ -996,7 +1563,7 @@ class ChatToAnkiExtension {
     console.log('Opening configuration page...');
     
     // Check if we're still on ChatGPT and potentially waiting for responses
-    if (window.location.href.includes('chatgpt.com') || window.location.href.includes('chat.openai.com')) {
+    if (window.location.href.includes('chatgpt.com') || window.location.href.includes('chat.openai.com') || window.location.href.includes('claude.ai')) {
       // Add a longer delay to ensure we're not interrupting response streaming
       setTimeout(() => {
         console.log('Delayed opening of config page after ensuring response completion');
@@ -1055,8 +1622,47 @@ class ChatToAnkiExtension {
     return div.innerHTML;
   }
   
-  generateCustomPrompt() {
+  async generateCustomPrompt() {
     console.log('generateCustomPrompt called');
+    
+    try {
+      // Get custom prompt from settings
+      const result = await chrome.storage.local.get(['settings']);
+      const customPrompt = result.settings?.customPrompt;
+      
+      if (customPrompt) {
+        console.log('Using custom prompt from settings');
+        
+        // Get modal form settings (if modal is open)
+        const modalSettings = this.currentPromptSettings || this.getUserPromptSettings();
+        
+        // Start with the custom prompt
+        let finalPrompt = customPrompt;
+        
+        // Add modal customizations if available
+        if (modalSettings) {
+          const modalCustomization = this.getCustomizationText(modalSettings);
+          if (modalCustomization.trim()) {
+            finalPrompt += `\n\nAdditional Instructions:\n${modalCustomization}`;
+          }
+        }
+        
+        console.log('Final prompt generated from custom prompt + modal settings');
+        return finalPrompt;
+      } else {
+        console.log('No custom prompt found, using default generation');
+        // Fallback to original method
+        return this.generateDefaultPrompt();
+      }
+    } catch (error) {
+      console.error('Error generating custom prompt:', error);
+      // Fallback to original method
+      return this.generateDefaultPrompt();
+    }
+  }
+  
+  generateDefaultPrompt() {
+    console.log('generateDefaultPrompt called');
     
     // Use stored settings if available (from modal submission), otherwise read current form
     const userSettings = this.currentPromptSettings || this.getUserPromptSettings();
@@ -1069,6 +1675,43 @@ class ChatToAnkiExtension {
     console.log('Final prompt generated:', finalPrompt);
     
     return finalPrompt;
+  }
+  
+  getSelectedChatContent() {
+    // Get content from selected chats
+    const selectedChats = Array.from(this.selectedChats);
+    let chatContent = '';
+    
+    selectedChats.forEach(chatId => {
+      const chatLink = document.querySelector(`a[href*="${chatId}"]`);
+      if (chatLink) {
+        const chatTitle = chatLink.textContent?.trim() || 'Untitled Chat';
+        chatContent += `Chat: ${chatTitle}\n`;
+        chatContent += `Content: [Chat content would be extracted from the conversation]\n\n`;
+      }
+    });
+    
+    if (!chatContent) {
+      chatContent = 'No specific chat selected. Please select chats to process.';
+    }
+    
+    return chatContent;
+  }
+  
+  getSelectedChatTitles() {
+    // Get titles from selected chats
+    const selectedChats = Array.from(this.selectedChats);
+    const titles = [];
+    
+    selectedChats.forEach(chatId => {
+      const chatLink = document.querySelector(`a[href*="${chatId}"]`);
+      if (chatLink) {
+        const chatTitle = chatLink.textContent?.trim() || 'Untitled Chat';
+        titles.push(chatTitle);
+      }
+    });
+    
+    return titles.length > 0 ? titles : ['Current Conversation'];
   }
   
   getUserPromptSettings() {
@@ -1125,7 +1768,7 @@ class ChatToAnkiExtension {
 
 CRITICAL REQUIREMENTS AND FORMATTING INSTRUCTIONS:
 - Output ONLY CSV data in your response - no other text, explanations, or formatting
-- Do NOT use markdown code blocks (no backticks, no ```csv, no code formatting)
+- Do NOT use markdown code blocks (no backticks, no triple backticks with csv, no code formatting)
 - Do NOT add any introductory text like "Here are the flashcards:" or "Based on our conversation:"
 - Do NOT add any explanatory text before or after the CSV data
 - Format: Topic,Question,Answer
@@ -1190,9 +1833,9 @@ General,What is the capital of France?,Paris`;
     return customization;
   }
   
-  previewPrompt() {
+  async previewPrompt() {
     console.log('Generating preview prompt...');
-    const prompt = this.generateCustomPrompt();
+    const prompt = await this.generateCustomPrompt();
     console.log('Generated prompt:', prompt);
     
     // Create preview modal
@@ -1337,12 +1980,12 @@ General,What is the capital of France?,Paris`;
     });
   }
   
-  debugTestPromptGeneration() {
+  async debugTestPromptGeneration() {
     console.log('=== Testing Prompt Generation ===');
     
     // Test with default settings
     console.log('--- Testing with default settings ---');
-    const defaultPrompt = this.generateCustomPrompt();
+    const defaultPrompt = await this.generateCustomPrompt();
     console.log('Default prompt length:', defaultPrompt.length);
     console.log('Default prompt preview:', defaultPrompt.substring(0, 200) + '...');
     
@@ -1379,8 +2022,30 @@ General,What is the capital of France?,Paris`;
   }
 }
 
-// Initialize the extension
-const chatToAnki = new ChatToAnkiExtension();
+// Initialize the extension with error handling
+console.log('Anki Extension: Starting extension initialization...');
 
-// Expose for debugging
-window.chatToAnki = chatToAnki;
+try {
+  console.log('Anki Extension: About to create ChatToAnkiExtension instance...');
+  const chatToAnki = new ChatToAnkiExtension();
+  console.log('Anki Extension: Extension initialized successfully:', chatToAnki);
+  
+  // Expose for debugging and popup access
+  window.chatToAnki = chatToAnki;
+  
+  // Add a global flag to indicate extension is loaded
+  window.ankiExtensionLoaded = true;
+  
+  console.log('Anki Extension: Global window.chatToAnki exposed');
+} catch (error) {
+  console.error('Anki Extension: Failed to initialize:', error);
+  
+  // Still expose a minimal object for popup compatibility
+  window.chatToAnki = {
+    error: error.message,
+    openChatSelectionModal: () => {
+      alert('Extension failed to load: ' + error.message);
+    }
+  };
+  window.ankiExtensionLoaded = false;
+}

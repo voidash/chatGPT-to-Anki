@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Chat to Anki Flashcards",
   "version": "1.0.0",
-  "description": "Convert ChatGPT conversations into Anki flashcards",
+  "description": "Convert AI conversations (ChatGPT, Claude, Perplexity) into Anki flashcards",
   
   "permissions": [
     "storage",
@@ -13,16 +13,19 @@
   
   "host_permissions": [
     "https://chatgpt.com/*",
-    "https://chat.openai.com/*"
+    "https://chat.openai.com/*",
+    "https://claude.ai/*",
+    "https://perplexity.ai/*",
+    "https://www.perplexity.ai/*"
   ],
   
   
   "content_scripts": [
     {
-      "matches": ["https://chatgpt.com/*", "https://chat.openai.com/*"],
+      "matches": ["https://chatgpt.com/*", "https://chat.openai.com/*", "https://claude.ai/*", "https://perplexity.ai/*", "https://www.perplexity.ai/*"],
       "js": ["content.js"],
       "css": ["styles.css"],
-      "run_at": "document_start"
+      "run_at": "document_end"
     }
   ],
   
@@ -38,7 +41,7 @@
   "web_accessible_resources": [
     {
       "resources": ["modal.html", "config.html", "genanki.js", "genanki-lib.js", "sql/sql.js", "jszip.min.js", "filesaver/FileSaver.min.js", "anki/genanki.js", "test/test.html", "test/test.js", "anki-worker.js"],
-      "matches": ["https://chatgpt.com/*", "https://chat.openai.com/*"]
+      "matches": ["https://chatgpt.com/*", "https://chat.openai.com/*", "https://claude.ai/*", "https://perplexity.ai/*", "https://www.perplexity.ai/*"]
     }
   ]
 }

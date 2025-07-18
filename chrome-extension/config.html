@@ -906,6 +906,46 @@
                             <input type="text" class="form-input" id="ankiDeckName" value="ChatGPT Flashcards" placeholder="Enter deck name">
                         </div>
                     </div>
+                    
+                    <div class="setting-item" style="grid-column: 1 / -1;">
+                        <h3>Prompt Customization</h3>
+                        <p>Customize the base prompt used to generate flashcards. This works together with the modal form options - the modal settings will be added as "Additional Instructions" to this prompt.</p>
+                        <div class="form-group">
+                            <label class="form-label">Custom Prompt</label>
+                            <textarea class="form-input" id="customPrompt" rows="8" placeholder="Enter your custom prompt here...">Based on the following conversation, create educational flashcards in CSV format. Each flashcard should have a clear question and a concise answer. Focus on key concepts, definitions, and important facts.
+
+Please format your response as a CSV with the following columns:
+- Topic (category/subject)
+- Question (front of flashcard)
+- Answer (back of flashcard)
+
+Generate 10-15 high-quality flashcards that capture the most important information from this conversation.</textarea>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">How it works</label>
+                            <div style="background: #f8fafc; padding: 12px; border-radius: 6px; border: 1px solid #e5e7eb; font-size: 14px; color: #6b7280;">
+                                <strong>Modal Integration:</strong><br>
+                                • Your custom prompt is used as the base<br>
+                                • The selected conversation content is automatically added<br>
+                                • Modal form settings (topic focus, difficulty, etc.) are added as "Additional Instructions"<br>
+                                • All components work together to create the final flashcard generation prompt
+                            </div>
+                        </div>
+                        <div class="button-group">
+                            <button class="button button-secondary" id="resetPrompt">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12,3A9,9 0 0,0 3,12A9,9 0 0,0 12,21A9,9 0 0,0 21,12A9,9 0 0,0 12,3M12,5A7,7 0 0,1 19,12A7,7 0 0,1 12,19A7,7 0 0,1 5,12A7,7 0 0,1 12,5M12.5,8L11,13.5L10.5,15L9,10.5L8.5,9L10,14.5L10.5,16L12,10.5L12.5,8Z"/>
+                                </svg>
+                                Reset to Default
+                            </button>
+                            <button class="button button-primary" id="testPrompt">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M8,5.14V19.14L19,12.14L8,5.14Z"/>
+                                </svg>
+                                Test Prompt
+                            </button>
+                        </div>
+                    </div>
                 </div>
                 
                 <div class="button-group">

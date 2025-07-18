@@ -158,12 +158,14 @@ class AnkiPackageGenerator {
   async callWorkerMethod(method, params) {
     return new Promise((resolve, reject) => {
       const requestId = Date.now() + Math.random();
+      let timeoutId;
       
       const handler = (event) => {
         if (event.source === window && event.data && 
             event.data.type === 'ANKI_WORKER_RESPONSE' && 
             event.data.requestId === requestId) {
           window.removeEventListener('message', handler);
+          if (timeoutId) clearTimeout(timeoutId);
           
           if (event.data.success) {
             resolve(event.data.result);
@@ -172,6 +174,12 @@ class AnkiPackageGenerator {
           }
         }
       };
+      
+      // Add timeout to prevent hanging
+      timeoutId = setTimeout(() => {
+        window.removeEventListener('message', handler);
+        reject(new Error(`Worker method '${method}' timed out after 30 seconds`));
+      }, 30000);
       
       window.addEventListener('message', handler);
       

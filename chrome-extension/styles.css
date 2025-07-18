@@ -15,6 +15,18 @@
   font-size: 14px;
   font-weight: 500;
   transition: background-color 0.2s;
+  width: fit-content;
+}
+
+/* Claude.ai specific styles */
+body[data-theme="claude"] .anki-export-button {
+  background-color: #9b59b6;
+  border-radius: 8px;
+  font-family: inherit;
+}
+
+body[data-theme="claude"] .anki-export-button:hover {
+  background-color: #8e44ad;
 }
 
 .anki-export-button:hover {
