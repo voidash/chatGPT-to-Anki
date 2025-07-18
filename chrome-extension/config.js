@@ -16,7 +16,14 @@ Please format your response as a CSV with the following columns:
 - Question (front of flashcard)
 - Answer (back of flashcard)
 
-Generate 10-15 high-quality flashcards that capture the most important information from this conversation.`
+Generate 10-15 high-quality flashcards that capture the most important information from this conversation.`,
+      contextPrompt: `Create educational flashcards from the following context information. Return ONLY CSV data with no markdown, explanations, or code blocks.
+
+Context Information:
+{CONTEXT}
+
+Format: Topic,Question,Answer
+Generate 10-15 flashcards. Begin output immediately with CSV data:`
     };
     
     this.init();
@@ -598,6 +605,7 @@ Generate 10-15 high-quality flashcards that capture the most important informati
     document.getElementById('defaultExportFormat').value = this.settings.defaultExportFormat;
     document.getElementById('ankiDeckName').value = this.settings.ankiDeckName;
     document.getElementById('customPrompt').value = this.settings.customPrompt;
+    document.getElementById('contextPrompt').value = this.settings.contextPrompt;
   }
   
   setupEventListeners() {
@@ -650,6 +658,17 @@ Generate 10-15 high-quality flashcards that capture the most important informati
     
     document.getElementById('testPrompt').addEventListener('click', () => {
       this.testPrompt();
+    });
+    
+    // Context prompt customization
+    document.getElementById('resetContextPrompt').addEventListener('click', () => {
+      if (confirm('Are you sure you want to reset the context prompt to the default template?')) {
+        this.resetContextPrompt();
+      }
+    });
+    
+    document.getElementById('testContextPrompt').addEventListener('click', () => {
+      this.testContextPrompt();
     });
   }
   
@@ -1141,7 +1160,8 @@ Generate 10-15 high-quality flashcards that capture the most important informati
         detectionStrategy: document.getElementById('detectionStrategy').value,
         defaultExportFormat: document.getElementById('defaultExportFormat').value,
         ankiDeckName: document.getElementById('ankiDeckName').value,
-        customPrompt: document.getElementById('customPrompt').value
+        customPrompt: document.getElementById('customPrompt').value,
+        contextPrompt: document.getElementById('contextPrompt').value
       };
       
       await this.setStorageData({ settings: this.settings });
@@ -1167,7 +1187,14 @@ Please format your response as a CSV with the following columns:
 - Question (front of flashcard)
 - Answer (back of flashcard)
 
-Generate 10-15 high-quality flashcards that capture the most important information from this conversation.`
+Generate 10-15 high-quality flashcards that capture the most important information from this conversation.`,
+        contextPrompt: `Create educational flashcards from the following context information. Return ONLY CSV data with no markdown, explanations, or code blocks.
+
+Context Information:
+{CONTEXT}
+
+Format: Topic,Question,Answer
+Generate 10-15 flashcards. Begin output immediately with CSV data:`
       };
       
       await this.setStorageData({ settings: this.settings });
@@ -1244,6 +1271,73 @@ Custom Instructions: Focus on simple explanations and practical examples`;
         </div>
         <div class="edit-modal-actions">
           <button type="button" class="button button-primary" onclick="this.closest('.edit-modal').remove()">Close</button>
+        </div>
+      </div>
+    `;
+    
+    document.body.appendChild(testModal);
+  }
+  
+  resetContextPrompt() {
+    const defaultContextPrompt = `Create educational flashcards from the following context information. Return ONLY CSV data with no markdown, explanations, or code blocks.
+
+Context Information:
+{CONTEXT}
+
+Format: Topic,Question,Answer
+Generate 10-15 flashcards. Begin output immediately with CSV data:`;
+    
+    document.getElementById('contextPrompt').value = defaultContextPrompt;
+    this.showAlert('Context prompt reset to default', 'success');
+  }
+  
+  testContextPrompt() {
+    const prompt = document.getElementById('contextPrompt').value;
+    
+    if (!prompt.trim()) {
+      this.showAlert('Please enter a context prompt template first', 'error');
+      return;
+    }
+    
+    // Create sample context data
+    const sampleContext = `Source: Wikipedia - Machine Learning (https://en.wikipedia.org/wiki/Machine_learning)
+Content: Machine learning is a method of data analysis that automates analytical model building. It is a branch of artificial intelligence based on the idea that systems can learn from data, identify patterns and make decisions with minimal human intervention.
+---
+
+Source: Stanford CS229 Course Notes (https://cs229.stanford.edu/notes/cs229-notes1.pdf)
+Content: In supervised learning, we have a training set of labeled examples (x(i), y(i)) where x(i) is the input and y(i) is the output label. The goal is to learn a function h that maps from x to y such that h(x) is a good predictor for the corresponding value of y.
+---
+
+Source: Neural Networks and Deep Learning (https://neuralnetworksanddeeplearning.com/chap1.html)
+Content: A neural network is a computational model inspired by the way biological neural networks in the human brain process information. It consists of interconnected nodes (neurons) that work together to solve complex problems through learning.`;
+    
+    // Replace the {CONTEXT} placeholder with sample data
+    const testPrompt = prompt.replace('{CONTEXT}', sampleContext);
+    
+    // Create a modal to show the test prompt
+    const testModal = document.createElement('div');
+    testModal.className = 'edit-modal active';
+    testModal.innerHTML = `
+      <div class="edit-modal-content" style="max-width: 800px;">
+        <div class="edit-modal-header">
+          <h3>Context Prompt Test Preview</h3>
+          <button class="edit-modal-close" onclick="this.closest('.edit-modal').remove()">×</button>
+        </div>
+        <div class="edit-form-group">
+          <label class="edit-form-label">Context Template:</label>
+          <textarea class="edit-form-input" rows="6" readonly>${this.escapeHtml(prompt)}</textarea>
+        </div>
+        <div class="edit-form-group">
+          <label class="edit-form-label">Sample Context Data:</label>
+          <textarea class="edit-form-input" rows="8" readonly>${this.escapeHtml(sampleContext)}</textarea>
+        </div>
+        <div class="edit-form-group">
+          <label class="edit-form-label">Final Prompt (ready to paste in ChatGPT):</label>
+          <textarea class="edit-form-input" rows="15" readonly>${this.escapeHtml(testPrompt)}</textarea>
+        </div>
+        <div class="edit-modal-actions">
+          <button type="button" class="button button-secondary" onclick="this.closest('.edit-modal').remove()">Close</button>
+          <button type="button" class="button button-primary" onclick="navigator.clipboard.writeText(\`${testPrompt.replace(/`/g, '\\`')}\`).then(() => { this.textContent = 'Copied!'; setTimeout(() => this.textContent = 'Copy to Clipboard', 2000); })">Copy to Clipboard</button>
         </div>
       </div>
     `;

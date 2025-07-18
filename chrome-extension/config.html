@@ -946,6 +946,46 @@ Generate 10-15 high-quality flashcards that capture the most important informati
                             </button>
                         </div>
                     </div>
+                    
+                    <div class="setting-item" style="grid-column: 1 / -1;">
+                        <h3>Context Prompt Settings</h3>
+                        <p>Customize the prompt used when generating flashcards from collected context items. Use {CONTEXT} placeholder where you want the collected text to be inserted.</p>
+                        <div class="form-group">
+                            <label class="form-label">Context Prompt Template</label>
+                            <textarea class="form-input" id="contextPrompt" rows="8" placeholder="Enter your context prompt template here...">Create educational flashcards from the following context information. Return ONLY CSV data with no markdown, explanations, or code blocks.
+
+Context Information:
+{CONTEXT}
+
+Format: Topic,Question,Answer
+Generate 10-15 flashcards. Begin output immediately with CSV data:</textarea>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">How Context Collection Works</label>
+                            <div style="background: #f8fafc; padding: 12px; border-radius: 6px; border: 1px solid #e5e7eb; font-size: 14px; color: #6b7280;">
+                                <strong>Context Collection Process:</strong><br>
+                                • Right-click selected text and choose "Add to Context for Flashcards"<br>
+                                • Text is saved with source information (page title, URL, timestamp)<br>
+                                • Use the popup "Generate Flashcards" button to create flashcards<br>
+                                • The system opens ChatGPT with your context prompt and collected information<br>
+                                • All collected context items are combined and inserted at {CONTEXT} placeholder
+                            </div>
+                        </div>
+                        <div class="button-group">
+                            <button class="button button-secondary" id="resetContextPrompt">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12,3A9,9 0 0,0 3,12A9,9 0 0,0 12,21A9,9 0 0,0 21,12A9,9 0 0,0 12,3M12,5A7,7 0 0,1 19,12A7,7 0 0,1 12,19A7,7 0 0,1 5,12A7,7 0 0,1 12,5M12.5,8L11,13.5L10.5,15L9,10.5L8.5,9L10,14.5L10.5,16L12,10.5L12.5,8Z"/>
+                                </svg>
+                                Reset to Default
+                            </button>
+                            <button class="button button-primary" id="testContextPrompt">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M8,5.14V19.14L19,12.14L8,5.14Z"/>
+                                </svg>
+                                Test Context Prompt
+                            </button>
+                        </div>
+                    </div>
                 </div>
                 
                 <div class="button-group">

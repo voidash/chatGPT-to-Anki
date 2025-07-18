@@ -5,6 +5,8 @@ document.addEventListener('DOMContentLoaded', function() {
   const configBtn = document.getElementById('configBtn');
   const helpBtn = document.getElementById('helpBtn');
   const statusDiv = document.getElementById('status');
+  const generateContextBtn = document.getElementById('generateContextBtn');
+  const clearContextBtn = document.getElementById('clearContextBtn');
   
   // Check if we're on supported platforms
   chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
@@ -115,6 +117,38 @@ For issues or suggestions, visit our GitHub repository.
     alert(helpContent);
   });
   
+  // Load context data
+  loadContextData();
+  
+  // Context button handlers
+  generateContextBtn.addEventListener('click', function() {
+    generateContextBtn.disabled = true;
+    generateContextBtn.textContent = 'Generating...';
+    
+    chrome.runtime.sendMessage({
+      action: 'generateContextFlashcards'
+    }, function(response) {
+      generateContextBtn.disabled = false;
+      generateContextBtn.textContent = 'Generate Flashcards';
+      
+      if (response.success) {
+        showStatus('Opening ChatGPT with context prompt...', 'success');
+        window.close();
+      } else {
+        showStatus(response.error || 'Failed to generate flashcards', 'error');
+      }
+    });
+  });
+  
+  clearContextBtn.addEventListener('click', function() {
+    if (confirm('Are you sure you want to clear all context items?')) {
+      chrome.storage.local.set({ contextData: [] }, function() {
+        loadContextData();
+        showStatus('Context cleared', 'success');
+      });
+    }
+  });
+  
   // Check for stored flashcard data
   chrome.storage.local.get(['flashcardData'], function(result) {
     if (result.flashcardData && result.flashcardData.length > 0) {
@@ -126,5 +160,50 @@ For issues or suggestions, visit our GitHub repository.
     statusDiv.textContent = message;
     statusDiv.className = `status status-${type}`;
     statusDiv.style.display = 'block';
+  }
+  
+  function loadContextData() {
+    chrome.storage.local.get(['contextData'], function(result) {
+      const contextData = result.contextData || [];
+      const contextCount = document.getElementById('contextCount');
+      const contextPreview = document.getElementById('contextPreview');
+      
+      contextCount.textContent = `${contextData.length} items`;
+      
+      if (contextData.length === 0) {
+        contextPreview.innerHTML = `
+          <div class="context-empty">
+            Select text on any page and right-click "Add to Context" to start collecting information for flashcards.
+          </div>
+        `;
+        generateContextBtn.disabled = true;
+      } else {
+        generateContextBtn.disabled = false;
+        
+        const previewHtml = contextData.slice(-3).map(item => {
+          const shortText = item.text.length > 100 ? item.text.substring(0, 100) + '...' : item.text;
+          const shortTitle = item.title.length > 30 ? item.title.substring(0, 30) + '...' : item.title;
+          
+          return `
+            <div class="context-item">
+              <div class="context-item-source">${shortTitle}</div>
+              <div class="context-item-text">${shortText}</div>
+            </div>
+          `;
+        }).join('');
+        
+        contextPreview.innerHTML = previewHtml;
+        
+        if (contextData.length > 3) {
+          contextPreview.innerHTML += `
+            <div class="context-item">
+              <div class="context-item-text" style="text-align: center; font-style: italic;">
+                +${contextData.length - 3} more items...
+              </div>
+            </div>
+          `;
+        }
+      }
+    });
   }
 });

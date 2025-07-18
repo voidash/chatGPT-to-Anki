@@ -8,7 +8,9 @@
     "storage",
     "downloads",
     "activeTab",
-    "scripting"
+    "scripting",
+    "contextMenus",
+    "notifications"
   ],
   
   "host_permissions": [

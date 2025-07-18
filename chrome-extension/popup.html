@@ -171,6 +171,103 @@
         .perplexity-icon {
             color: #2563eb;
         }
+        
+        .context-section {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border: 1px solid #e5e7eb;
+        }
+        
+        .context-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .context-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #1f2937;
+        }
+        
+        .context-count {
+            font-size: 12px;
+            color: #6b7280;
+            background: #f3f4f6;
+            padding: 2px 8px;
+            border-radius: 10px;
+        }
+        
+        .context-preview {
+            max-height: 80px;
+            overflow-y: auto;
+            font-size: 12px;
+            color: #6b7280;
+            margin-bottom: 10px;
+        }
+        
+        .context-item {
+            padding: 6px 0;
+            border-bottom: 1px solid #f3f4f6;
+        }
+        
+        .context-item:last-child {
+            border-bottom: none;
+        }
+        
+        .context-item-source {
+            font-size: 10px;
+            color: #9ca3af;
+            margin-bottom: 2px;
+        }
+        
+        .context-item-text {
+            font-size: 12px;
+            color: #6b7280;
+        }
+        
+        .context-buttons {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .context-button {
+            flex: 1;
+            padding: 8px 12px;
+            font-size: 12px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .context-button-primary {
+            background: #10a37f;
+            color: white;
+        }
+        
+        .context-button-primary:hover {
+            background: #0d8f6b;
+        }
+        
+        .context-button-secondary {
+            background: #f3f4f6;
+            color: #6b7280;
+        }
+        
+        .context-button-secondary:hover {
+            background: #e5e7eb;
+        }
+        
+        .context-empty {
+            text-align: center;
+            color: #9ca3af;
+            font-size: 12px;
+            padding: 20px;
+        }
     </style>
 </head>
 <body>
@@ -180,6 +277,27 @@
     </div>
     
     <div id="status" class="status status-info" style="display: none;"></div>
+    
+    <!-- Context Section -->
+    <div id="contextSection" class="context-section">
+        <div class="context-header">
+            <span class="context-title">Context Collection</span>
+            <span id="contextCount" class="context-count">0 items</span>
+        </div>
+        <div id="contextPreview" class="context-preview">
+            <div class="context-empty">
+                Select text on any page and right-click "Add to Context" to start collecting information for flashcards.
+            </div>
+        </div>
+        <div class="context-buttons">
+            <button id="generateContextBtn" class="context-button context-button-primary">
+                Generate Flashcards
+            </button>
+            <button id="clearContextBtn" class="context-button context-button-secondary">
+                Clear All
+            </button>
+        </div>
+    </div>
     
     <div id="platformButtons" class="platform-buttons" style="display: none;">
         <div class="platform-buttons-header">
