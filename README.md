@@ -1,58 +1,112 @@
-# Chat to Anki Flashcards
+# Chat to Anki Flashcards 🧠💡
 
-Convert AI conversations from ChatGPT, Claude, and Perplexity into Anki flashcards automatically.
+Convert AI conversations from **ChatGPT**, **Claude**, and **Perplexity** into Anki flashcards automatically. **NO API KEYS REQUIRED** for seamless experience.
 
-## Project Structure
+![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/aqua.png)
 
-This project has been organized into two main components:
+## Features 🍙
 
-### 📁 `chrome-extension/`
-Contains the Chrome browser extension that:
-- Runs on ChatGPT, Claude.ai, and Perplexity.ai
-- Extracts conversations and generates flashcards
-- Provides customizable prompt templates
-- Exports flashcards as CSV or Anki packages
+- **Multi-Platform Support**: Works with ChatGPT, Claude.ai, and Perplexity.ai
+- **Two Modes**: Chat mode (export conversations) and Context mode (right-click to add text)
+- **No API Keys Required**: Works directly with web-based AI platforms
+- **Automatic Import**: Direct integration with Anki Desktop via addon
+- **Review Before Export**: Preview and edit flashcards before creating packages
+- **Multiple Export Options**: Anki package (.ankiaddon) and CSV formats
 
-### 📁 `anki-addon-moved/`
-Contains the Anki Desktop addon that:
-- Monitors Downloads folder for new flashcard packages
-- Automatically imports flashcards into Anki
-- Provides seamless integration between extension and Anki
+![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/aqua.png)
 
-## Quick Start
+## How it works 🛠️
 
-1. **Install Chrome Extension:**
-   ```bash
-   cd chrome-extension/
-   # Load unpacked extension in Chrome
-   ```
+The system consists of two components working together:
 
-2. **Install Anki Addon:**
-   ```bash
-   cd anki-addon-moved/
-   python build_addon.py
-   # Install the generated .ankiaddon file in Anki
-   ```
+### Browser Extension 🔌
+**Chat Mode:**
+```
+1. Navigate to ChatGPT/Claude/Perplexity
+2. Click "Export to Chat" button or extension popup
+3. Select chat and modify prompt if needed
+4. Review generated flashcards
+5. Export as Anki package
+```
 
-3. **Use the System:**
-   - Browse to ChatGPT, Claude, or Perplexity
-   - Click the extension icon
-   - Generate flashcards from your conversations
-   - Flashcards automatically appear in Anki
+**Context Mode:**
+```
+1. Right-click any text on any website
+2. Select "Add to context for Anki Flashcards"
+3. Add multiple contexts from different sites
+4. Click "Generate flashcards" in popup
+5. Review and export flashcards
+```
 
-## Features
+### Anki Addon 📚
+```
+1. Direct integration with Anki desktop
+2. Auto-imports flashcard packages from extension
+3. Requires Anki running in background
+```
 
-- ✅ **Multi-Platform Support**: ChatGPT, Claude.ai, Perplexity.ai
-- ✅ **Customizable Prompts**: Configure how flashcards are generated
-- ✅ **Automatic Import**: Seamless Anki integration
-- ✅ **CSV Export**: Manual export option available
-- ✅ **AnkiWeb Sync**: Full compatibility with Anki ecosystem
+![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/aqua.png)
 
-## Documentation
+## Quick Start 🚀
 
-- See `chrome-extension/README.md` for extension details
-- See `anki-addon-moved/README.md` for addon details
+### Install Browser Extension
+**Method 1: Chrome Web Store (Recommended)**
+*Coming soon - extension under review*
 
-## Version
+**Method 2: Manual Installation**
+```bash
+1. Clone repository or download ZIP
+2. Navigate to browser-extension/ folder
+3. Open Chrome → chrome://extensions/
+4. Enable "Developer mode"
+5. Click "Load unpacked" → Select extension folder
+```
 
-Current version: 1.0.0
+### Install Anki Addon  
+**Method 1: AnkiWeb (Recommended)**
+*Coming soon - will be available after cleanup*
+
+**Method 2: Manual Installation**
+```bash
+1. Navigate to anki-addon/ folder
+2. Open Anki → Tools → Add-ons
+3. Click "Install from file"
+4. Select anki-addon folder
+5. Restart Anki (Important!)
+```
+
+### Start Converting
+**Chat Mode:**
+- Navigate to ChatGPT/Claude/Perplexity
+- Click "Export to Chat" button or extension popup
+- Review and export flashcards
+
+**Context Mode:**
+- Right-click any text → "Add to context for Anki Flashcards"
+- Click "Generate flashcards" in extension popup
+- Review and export flashcards
+
+![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/aqua.png)
+
+## Supported Platforms 🌐
+
+- **ChatGPT** (chatgpt.com, chat.openai.com)
+- **Claude** (claude.ai) 
+- **Perplexity** (perplexity.ai)
+
+![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/aqua.png)
+
+## Documentation 📖
+
+For detailed instructions and usage guides:
+
+- **[Complete Documentation](docs/)** - Full documentation site with step-by-step guides
+- **[Browser Extension Guide](docs/docs/browser-extension.md)** - Detailed extension setup, chat mode, and context mode usage
+- **[Anki Addon Guide](docs/docs/anki-addon.md)** - Addon installation, configuration, and integration
+- **[Getting Started](docs/docs/intro.md)** - Quick overview and component explanations
+
+![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/aqua.png)
+
+## Version Info 📋
+
+Current version: **1.0.0**

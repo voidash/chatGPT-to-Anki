@@ -1,4 +1,7 @@
-// Chat to Anki Flashcards - Popup Script
+// Chat to Anki Flashcards - Popup Script (Firefox Compatible)
+
+// Use browser API if available, fallback to chrome API
+const browserAPI = typeof browser !== 'undefined' ? browser : chrome;
 
 document.addEventListener('DOMContentLoaded', function() {
   const exportBtn = document.getElementById('exportBtn');
@@ -9,7 +12,7 @@ document.addEventListener('DOMContentLoaded', function() {
   const clearContextBtn = document.getElementById('clearContextBtn');
   
   // Check if we're on supported platforms
-  chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+  browserAPI.tabs.query({active: true, currentWindow: true}, function(tabs) {
     const currentTab = tabs[0];
     const isOnChatGPT = currentTab.url.includes('chatgpt.com') || currentTab.url.includes('chat.openai.com');
     const isOnClaude = currentTab.url.includes('claude.ai');
@@ -23,17 +26,17 @@ document.addEventListener('DOMContentLoaded', function() {
       
       // Add platform button handlers
       document.getElementById('chatgptBtn').addEventListener('click', function() {
-        chrome.tabs.create({ url: 'https://chatgpt.com' });
+        browserAPI.tabs.create({ url: 'https://chatgpt.com' });
         window.close();
       });
       
       document.getElementById('claudeBtn').addEventListener('click', function() {
-        chrome.tabs.create({ url: 'https://claude.ai' });
+        browserAPI.tabs.create({ url: 'https://claude.ai' });
         window.close();
       });
       
       document.getElementById('perplexityBtn').addEventListener('click', function() {
-        chrome.tabs.create({ url: 'https://perplexity.ai' });
+        browserAPI.tabs.create({ url: 'https://perplexity.ai' });
         window.close();
       });
     } else {
@@ -48,7 +51,7 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Export button click
   exportBtn.addEventListener('click', function() {
-    chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+    browserAPI.tabs.query({active: true, currentWindow: true}, function(tabs) {
       const currentTab = tabs[0];
       const isOnChatGPT = currentTab.url.includes('chatgpt.com') || currentTab.url.includes('chat.openai.com');
       const isOnClaude = currentTab.url.includes('claude.ai');
@@ -56,28 +59,50 @@ document.addEventListener('DOMContentLoaded', function() {
       const isOnSupportedPlatform = isOnChatGPT || isOnClaude || isOnPerplexity;
       
       if (isOnSupportedPlatform) {
-        // Execute the export function
-        chrome.scripting.executeScript({
-          target: { tabId: currentTab.id },
-          func: () => {
-            console.log('Checking extension status...');
-            console.log('window.chatToAnki:', window.chatToAnki);
-            console.log('window.ankiExtensionLoaded:', window.ankiExtensionLoaded);
-            
-            if (window.chatToAnki && window.ankiExtensionLoaded) {
-              console.log('Extension loaded successfully, opening modal...');
-              window.chatToAnki.openChatSelectionModal();
-            } else if (window.chatToAnki && window.chatToAnki.error) {
-              alert('Extension failed to load: ' + window.chatToAnki.error);
-            } else {
-              console.log('Extension not loaded, showing error message');
-              alert('Extension not loaded. Please refresh the page and try again.\n\nIf the issue persists, check the browser console for error messages.');
+        // Execute the export function (Firefox compatible)
+        if (browserAPI.tabs.executeScript) {
+          // Firefox Manifest V2
+          browserAPI.tabs.executeScript(currentTab.id, {
+            code: `
+              console.log('Checking extension status...');
+              console.log('window.chatToAnki:', window.chatToAnki);
+              console.log('window.ankiExtensionLoaded:', window.ankiExtensionLoaded);
+              
+              if (window.chatToAnki && window.ankiExtensionLoaded) {
+                console.log('Extension loaded successfully, opening modal...');
+                window.chatToAnki.openChatSelectionModal();
+              } else if (window.chatToAnki && window.chatToAnki.error) {
+                alert('Extension failed to load: ' + window.chatToAnki.error);
+              } else {
+                console.log('Extension not loaded, showing error message');
+                alert('Extension not loaded. Please refresh the page and try again.\\n\\nIf the issue persists, check the browser console for error messages.');
+              }
+            `
+          });
+        } else {
+          // Fallback for newer Firefox versions
+          browserAPI.scripting.executeScript({
+            target: { tabId: currentTab.id },
+            func: () => {
+              console.log('Checking extension status...');
+              console.log('window.chatToAnki:', window.chatToAnki);
+              console.log('window.ankiExtensionLoaded:', window.ankiExtensionLoaded);
+              
+              if (window.chatToAnki && window.ankiExtensionLoaded) {
+                console.log('Extension loaded successfully, opening modal...');
+                window.chatToAnki.openChatSelectionModal();
+              } else if (window.chatToAnki && window.chatToAnki.error) {
+                alert('Extension failed to load: ' + window.chatToAnki.error);
+              } else {
+                console.log('Extension not loaded, showing error message');
+                alert('Extension not loaded. Please refresh the page and try again.\n\nIf the issue persists, check the browser console for error messages.');
+              }
             }
-          }
-        });
+          });
+        }
         window.close();
       } else {
-        chrome.tabs.create({ url: 'https://chatgpt.com' });
+        browserAPI.tabs.create({ url: 'https://chatgpt.com' });
         window.close();
       }
     });
@@ -85,7 +110,7 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Configuration button click
   configBtn.addEventListener('click', function() {
-    chrome.tabs.create({ url: chrome.runtime.getURL('config.html') });
+    browserAPI.tabs.create({ url: browserAPI.runtime.getURL('config.html') });
     window.close();
   });
   
@@ -125,7 +150,7 @@ For issues or suggestions, visit our GitHub repository.
     generateContextBtn.disabled = true;
     generateContextBtn.textContent = 'Generating...';
     
-    chrome.runtime.sendMessage({
+    browserAPI.runtime.sendMessage({
       action: 'generateContextFlashcards'
     }, function(response) {
       generateContextBtn.disabled = false;
@@ -142,7 +167,7 @@ For issues or suggestions, visit our GitHub repository.
   
   clearContextBtn.addEventListener('click', function() {
     if (confirm('Are you sure you want to clear all context items?')) {
-      chrome.storage.local.set({ contextData: [] }, function() {
+      browserAPI.storage.local.set({ contextData: [] }, function() {
         loadContextData();
         showStatus('Context cleared', 'success');
       });
@@ -150,7 +175,7 @@ For issues or suggestions, visit our GitHub repository.
   });
   
   // Check for stored flashcard data
-  chrome.storage.local.get(['flashcardData'], function(result) {
+  browserAPI.storage.local.get(['flashcardData'], function(result) {
     if (result.flashcardData && result.flashcardData.length > 0) {
       showStatus(`${result.flashcardData.length} flashcard sets ready`, 'success');
     }
@@ -163,7 +188,7 @@ For issues or suggestions, visit our GitHub repository.
   }
   
   function loadContextData() {
-    chrome.storage.local.get(['contextData'], function(result) {
+    browserAPI.storage.local.get(['contextData'], function(result) {
       const contextData = result.contextData || [];
       const contextCount = document.getElementById('contextCount');
       const contextPreview = document.getElementById('contextPreview');
