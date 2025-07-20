@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Test - Show All Flashcards Button</title>
+    <script>
+        // Simple test to verify the button functionality
+        function testButtonFunction() {
+            console.log('Test function called - this means the event system is working');
+            alert('Button clicked successfully!');
+        }
+        
+        function setupTestButton() {
+            const button = document.querySelector('.test-show-all-btn');
+            if (button) {
+                button.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    console.log('Test button clicked');
+                    testButtonFunction();
+                });
+                console.log('Test button event listener attached');
+            }
+        }
+        
+        document.addEventListener('DOMContentLoaded', setupTestButton);
+    </script>
+</head>
+<body>
+    <h1>Debug Test</h1>
+    <p>This tests if the event delegation approach works correctly.</p>
+    
+    <div id="dynamicContent">
+        <!-- This simulates dynamically inserted HTML -->
+    </div>
+    
+    <button onclick="insertDynamicButton()">Insert Dynamic Button (onclick method)</button>
+    <button onclick="insertEventDelegatedButton()">Insert Event Delegated Button</button>
+    
+    <script>
+        function insertDynamicButton() {
+            document.getElementById('dynamicContent').innerHTML = `
+                <button onclick="testButtonFunction()">Dynamic Button with onclick</button>
+            `;
+        }
+        
+        function insertEventDelegatedButton() {
+            document.getElementById('dynamicContent').innerHTML = `
+                <button class="test-show-all-btn">Dynamic Button with Event Delegation</button>
+            `;
+            setupTestButton(); // Re-setup event listeners
+        }
+    </script>
+</body>
+</html>

@@ -704,6 +704,44 @@
                 justify-content: center;
             }
         }
+        
+        /* File Upload Styles */
+        .file-upload-group {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .file-upload {
+            flex: 1;
+        }
+        
+        .file-upload input[type="file"] {
+            display: none;
+        }
+        
+        .file-upload-label {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 8px;
+            border: 1px dashed #d1d5db;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            color: #6b7280;
+            transition: all 0.2s;
+        }
+        
+        .file-upload-label:hover {
+            background: #f9fafb;
+            border-color: #9ca3af;
+        }
+        
+        .file-upload-icon {
+            width: 12px;
+            height: 12px;
+            margin-right: 4px;
+        }
     </style>
 </head>
 <body>
@@ -1014,17 +1052,59 @@ Generate 10-15 flashcards. Begin output immediately with CSV data:</textarea>
                 <button class="edit-modal-close" id="editModalClose">×</button>
             </div>
             <form id="editForm">
-                <div class="edit-form-group">
+                <div class="edit-form-group" id="editTopicGroup">
                     <label class="edit-form-label" for="editTopic">Topic</label>
                     <input type="text" class="edit-form-input" id="editTopic" placeholder="Enter topic">
                 </div>
                 <div class="edit-form-group">
-                    <label class="edit-form-label" for="editQuestion">Question</label>
+                    <label class="edit-form-label" for="editQuestion">Question/Front</label>
                     <textarea class="edit-form-input edit-form-textarea" id="editQuestion" placeholder="Enter question"></textarea>
+                    <div class="file-upload-group" style="margin-top: 8px;">
+                        <div class="file-upload">
+                            <input type="file" id="editFrontImage" accept="image/*">
+                            <label for="editFrontImage" class="file-upload-label">
+                                <svg class="file-upload-icon" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M21,19V5C21,3.89 20.1,3 19,3H5A2,2 0 0,0 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19M19,5V19L14,14L11,17L7,13L5,15V5H19Z"/>
+                                </svg>
+                                Front Image
+                            </label>
+                        </div>
+                        <div class="file-upload">
+                            <input type="file" id="editFrontAudio" accept="audio/*">
+                            <label for="editFrontAudio" class="file-upload-label">
+                                <svg class="file-upload-icon" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M14,3.23V5.29C16.89,6.15 19,8.83 19,12C19,15.17 16.89,17.85 14,18.71V20.77C18,19.86 21,16.28 21,12C21,7.72 18,4.14 14,3.23M16.5,12C16.5,10.23 15.5,8.71 14,7.97V16C15.5,15.29 16.5,13.76 16.5,12M3,9V15H7L12,20V4L7,9H3Z"/>
+                                </svg>
+                                Front Audio
+                            </label>
+                        </div>
+                    </div>
+                    <div id="editFrontMediaPreview" style="margin-top: 8px;"></div>
                 </div>
                 <div class="edit-form-group">
-                    <label class="edit-form-label" for="editAnswer">Answer</label>
+                    <label class="edit-form-label" for="editAnswer">Answer/Back</label>
                     <textarea class="edit-form-input edit-form-textarea" id="editAnswer" placeholder="Enter answer"></textarea>
+                    <div class="file-upload-group" style="margin-top: 8px;">
+                        <div class="file-upload">
+                            <input type="file" id="editBackImage" accept="image/*">
+                            <label for="editBackImage" class="file-upload-label">
+                                <svg class="file-upload-icon" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M21,19V5C21,3.89 20.1,3 19,3H5A2,2 0 0,0 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19M19,5V19L14,14L11,17L7,13L5,15V5H19Z"/>
+                                </svg>
+                                Back Image
+                            </label>
+                        </div>
+                        <div class="file-upload">
+                            <input type="file" id="editBackAudio" accept="audio/*">
+                            <label for="editBackAudio" class="file-upload-label">
+                                <svg class="file-upload-icon" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M14,3.23V5.29C16.89,6.15 19,8.83 19,12C19,15.17 16.89,17.85 14,18.71V20.77C18,19.86 21,16.28 21,12C21,7.72 18,4.14 14,3.23M16.5,12C16.5,10.23 15.5,8.71 14,7.97V16C15.5,15.29 16.5,13.76 16.5,12M3,9V15H7L12,20V4L7,9H3Z"/>
+                                </svg>
+                                Back Audio
+                            </label>
+                        </div>
+                    </div>
+                    <div id="editBackMediaPreview" style="margin-top: 8px;"></div>
                 </div>
                 <div class="edit-modal-actions">
                     <button type="button" class="button button-secondary" id="editCancel">Cancel</button>

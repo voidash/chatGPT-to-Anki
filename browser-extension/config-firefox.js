@@ -677,10 +677,16 @@ Generate 10-15 flashcards. Begin output immediately with CSV data:`
   
   async clearAllFlashcards() {
     try {
-      await this.setStorageData({ flashcardData: [] });
+      // Clear all flashcard-related data
+      await this.setStorageData({ 
+        flashcardData: [],
+        customDecks: [],
+        structuredCards: []
+      });
       this.flashcardData = [];
+      this.customDecks = [];
       this.loadData();
-      this.showAlert('All flashcards cleared successfully', 'success');
+      this.showAlert('All flashcards and custom decks cleared successfully', 'success');
     } catch (error) {
       console.error('Error clearing flashcards:', error);
       this.showAlert('Error clearing flashcards', 'error');

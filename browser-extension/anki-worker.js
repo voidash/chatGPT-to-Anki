@@ -127,6 +127,7 @@ class AnkiWorker {
       
       // Create package
       const pkg = new Package();
+      let mediaCounter = 0; // For unique media filenames
       
       // Create separate deck for each topic
       Object.keys(topicGroups).forEach((topic, index) => {
@@ -135,11 +136,64 @@ class AnkiWorker {
         const topicDeck = new Deck(topicDeckId, topicDeckName);
         
         // Add cards to this topic's deck
-        topicGroups[topic].forEach((flashcard) => {
+        topicGroups[topic].forEach((flashcard, cardIndex) => {
+          let questionContent = flashcard.question || '';
+          let answerContent = flashcard.answer || '';
+          
+          // Process front media (question side)
+          if (flashcard.frontImage) {
+            const imageFileName = `front_image_${index}_${cardIndex}_${mediaCounter++}.${flashcard.frontImage.type.split('/')[1]}`;
+            console.log('Adding front image:', imageFileName);
+            
+            // Convert base64 to blob
+            const frontImageBlob = this.base64ToBlob(flashcard.frontImage.data, flashcard.frontImage.type);
+            pkg.addMedia(frontImageBlob, imageFileName);
+            
+            // Add image to question content
+            questionContent += `<br><img src="${imageFileName}">`;
+          }
+          
+          if (flashcard.frontAudio) {
+            const audioFileName = `front_audio_${index}_${cardIndex}_${mediaCounter++}.${flashcard.frontAudio.type.split('/')[1]}`;
+            console.log('Adding front audio:', audioFileName);
+            
+            // Convert base64 to blob
+            const frontAudioBlob = this.base64ToBlob(flashcard.frontAudio.data, flashcard.frontAudio.type);
+            pkg.addMedia(frontAudioBlob, audioFileName);
+            
+            // Add audio to question content
+            questionContent += `<br>[sound:${audioFileName}]`;
+          }
+          
+          // Process back media (answer side)
+          if (flashcard.image) {
+            const imageFileName = `back_image_${index}_${cardIndex}_${mediaCounter++}.${flashcard.image.type.split('/')[1]}`;
+            console.log('Adding back image:', imageFileName);
+            
+            // Convert base64 to blob
+            const backImageBlob = this.base64ToBlob(flashcard.image.data, flashcard.image.type);
+            pkg.addMedia(backImageBlob, imageFileName);
+            
+            // Add image to answer content
+            answerContent += `<br><img src="${imageFileName}">`;
+          }
+          
+          if (flashcard.audio) {
+            const audioFileName = `back_audio_${index}_${cardIndex}_${mediaCounter++}.${flashcard.audio.type.split('/')[1]}`;
+            console.log('Adding back audio:', audioFileName);
+            
+            // Convert base64 to blob
+            const backAudioBlob = this.base64ToBlob(flashcard.audio.data, flashcard.audio.type);
+            pkg.addMedia(backAudioBlob, audioFileName);
+            
+            // Add audio to answer content
+            answerContent += `<br>[sound:${audioFileName}]`;
+          }
+          
           const note = model.note([
             flashcard.topic || 'General',
-            flashcard.question || '',
-            flashcard.answer || ''
+            questionContent,
+            answerContent
           ], ['chatgpt', 'flashcard', topic.toLowerCase()]);
           
           topicDeck.addNote(note);
@@ -162,6 +216,21 @@ class AnkiWorker {
     }
   }
   
+  // Helper function to convert base64 data to blob
+  base64ToBlob(base64Data, mimeType) {
+    // Remove data URL prefix if present
+    const base64 = base64Data.replace(/^data:[^;]+;base64,/, '');
+    
+    // Convert base64 to binary
+    const binaryString = atob(base64);
+    const bytes = new Uint8Array(binaryString.length);
+    
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+    
+    return new Blob([bytes], { type: mimeType });
+  }
   
   async testImplementation(params) {
     try {

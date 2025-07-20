@@ -3,6 +3,7 @@
 class ConfigManager {
   constructor() {
     this.flashcardData = [];
+    this.customDecks = [];
     this.settings = {
       maxFlashcards: 20,
       defaultTopic: 'General',
@@ -59,11 +60,17 @@ Generate 10-15 flashcards. Begin output immediately with CSV data:`
   
   async loadData() {
     try {
-      // Load flashcard data
-      const result = await this.getStorageData(['flashcardData', 'settings']);
+      // Load flashcard data and custom decks
+      const result = await this.getStorageData(['flashcardData', 'customDecks', 'settings']);
       
       if (result.flashcardData) {
         this.flashcardData = result.flashcardData;
+      }
+      
+      if (result.customDecks) {
+        this.customDecks = result.customDecks;
+      } else {
+        this.customDecks = [];
       }
       
       if (result.settings) {
@@ -103,6 +110,7 @@ Generate 10-15 flashcards. Begin output immediately with CSV data:`
     let topics = new Set();
     let lastUpdated = 'Never';
     
+    // Count flashcards from chat exports
     this.flashcardData.forEach(data => {
       if (data.csvData) {
         // Try both \n and \\n for line splitting
@@ -121,7 +129,15 @@ Generate 10-15 flashcards. Begin output immediately with CSV data:`
       }
     });
     
-    if (totalChats > 0) {
+    // Count flashcards from custom decks
+    this.customDecks.forEach(deck => {
+      if (deck.cards && Array.isArray(deck.cards)) {
+        totalFlashcards += deck.cards.length;
+        topics.add(deck.name);
+      }
+    });
+    
+    if (totalChats > 0 || this.customDecks.length > 0) {
       lastUpdated = new Date().toLocaleDateString();
     }
     
@@ -218,7 +234,7 @@ Generate 10-15 flashcards. Begin output immediately with CSV data:`
       flashcardHeader.innerHTML = `
         <div style="display: flex; align-items: center; gap: 10px;">
           <h3>${this.escapeHtml(chatName)}</h3>
-          <button class="button button-secondary" onclick="configManager.showAllFlashcards()" style="padding: 5px 10px; font-size: 12px;">
+          <button class="button button-secondary show-all-flashcards-btn" style="padding: 5px 10px; font-size: 12px;">
             Show All Flashcards
           </button>
         </div>
@@ -296,30 +312,58 @@ Generate 10-15 flashcards. Begin output immediately with CSV data:`
     // Add event listeners for delete and edit buttons
     this.setupDeleteButtons();
     this.setupEditButtons();
+    
+    // Set up the "Show All Flashcards" button with a small delay to ensure DOM is ready
+    setTimeout(() => {
+      this.setupShowAllFlashcardsButton();
+    }, 100);
   }
   
   showAllFlashcards() {
-    // Reset to normal flashcard view
-    this.currentChatView = null;
-    
-    // Show topic sidebar and reset flashcard content width
-    const topicSidebar = document.querySelector('.topic-sidebar');
-    const flashcardContent = document.querySelector('.flashcard-content');
-    
-    if (topicSidebar) topicSidebar.style.display = 'block';
-    if (flashcardContent) flashcardContent.style.width = '';
-    
-    // Reset header
-    const flashcardHeader = document.querySelector('.flashcard-header');
-    if (flashcardHeader) {
-      flashcardHeader.innerHTML = `
-        <h3 id="selectedTopicTitle">All Flashcards</h3>
-        <div class="flashcard-count" id="flashcardCount">0 flashcards</div>
-      `;
+    try {
+      console.log('showAllFlashcards called');
+      
+      // Reset to normal flashcard view
+      this.currentChatView = null;
+      
+      // Show topic sidebar and reset flashcard content width
+      const topicSidebar = document.querySelector('.topic-sidebar');
+      const flashcardContent = document.querySelector('.flashcard-content');
+      
+      if (topicSidebar) {
+        topicSidebar.style.display = 'block';
+        console.log('Topic sidebar shown');
+      } else {
+        console.warn('Topic sidebar not found');
+      }
+      
+      if (flashcardContent) {
+        flashcardContent.style.width = '';
+        console.log('Flashcard content width reset');
+      } else {
+        console.warn('Flashcard content not found');
+      }
+      
+      // Reset header
+      const flashcardHeader = document.querySelector('.flashcard-header');
+      if (flashcardHeader) {
+        flashcardHeader.innerHTML = `
+          <h3 id="selectedTopicTitle">All Flashcards</h3>
+          <div class="flashcard-count" id="flashcardCount">0 flashcards</div>
+        `;
+        console.log('Header reset');
+      } else {
+        console.warn('Flashcard header not found');
+      }
+      
+      // Load normal flashcard view
+      this.loadFlashcards();
+      console.log('showAllFlashcards completed successfully');
+      
+    } catch (error) {
+      console.error('Error in showAllFlashcards:', error);
+      this.showAlert('Error switching to all flashcards view', 'error');
     }
-    
-    // Load normal flashcard view
-    this.loadFlashcards();
   }
   
   loadFlashcards() {
@@ -454,23 +498,51 @@ Generate 10-15 flashcards. Begin output immediately with CSV data:`
       return;
     }
     
-    const flashcardHtml = flashcards.map((card, index) => `
-      <div class="flashcard-item" data-card-index="${index}">
-        <button class="edit-card-btn" data-chat-index="${card.chatIndex}" data-line-index="${card.lineIndex}" title="Edit flashcard">
-          <svg viewBox="0 0 24 24" fill="currentColor">
-            <path d="M20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18,2.9 17.35,2.9 16.96,3.29L15.12,5.12L18.87,8.87M3,17.25V21H6.75L17.81,9.93L14.06,6.18L3,17.25Z"/>
-          </svg>
-        </button>
-        <button class="delete-card-btn" data-chat-index="${card.chatIndex}" data-line-index="${card.lineIndex}" title="Delete flashcard">
-          <svg viewBox="0 0 24 24" fill="currentColor">
-            <path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"/>
-          </svg>
-        </button>
-        <div class="flashcard-topic">${this.escapeHtml(card.topic)}</div>
-        <div class="flashcard-question">${this.escapeHtml(card.question)}</div>
-        <div class="flashcard-answer">${this.escapeHtml(card.answer)}</div>
-      </div>
-    `).join('');
+    const flashcardHtml = flashcards.map((card, index) => {
+      const isCustomDeck = card.source === 'deck';
+      const editBtnData = isCustomDeck ? 
+        `data-deck-index="${card.deckIndex}" data-card-index="${card.cardIndex}" data-source="deck"` :
+        `data-chat-index="${card.chatIndex}" data-line-index="${card.lineIndex}" data-source="chat"`;
+      const deleteBtnData = editBtnData;
+      
+      let mediaContent = '';
+      
+      
+      // Front media (shown with question)
+      if (card.frontImage) {
+        mediaContent += `<div class="card-media front-media"><img src="${card.frontImage.data}" alt="Question image" style="max-width: 100px; max-height: 100px; object-fit: cover; border-radius: 4px; margin-top: 8px;"></div>`;
+      }
+      if (card.frontAudio) {
+        mediaContent += `<div class="card-media front-media"><audio controls style="width: 100%; margin-top: 8px;"><source src="${card.frontAudio.data}" type="${card.frontAudio.type}"></audio></div>`;
+      }
+      
+      // Back media (shown with answer)
+      if (card.image) {
+        mediaContent += `<div class="card-media back-media"><img src="${card.image.data}" alt="Answer image" style="max-width: 100px; max-height: 100px; object-fit: cover; border-radius: 4px; margin-top: 8px;"></div>`;
+      }
+      if (card.audio) {
+        mediaContent += `<div class="card-media back-media"><audio controls style="width: 100%; margin-top: 8px;"><source src="${card.audio.data}" type="${card.audio.type}"></audio></div>`;
+      }
+      
+      return `
+        <div class="flashcard-item" data-card-index="${index}">
+          <button class="edit-card-btn" ${editBtnData} title="Edit flashcard">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <path d="M20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18,2.9 17.35,2.9 16.96,3.29L15.12,5.12L18.87,8.87M3,17.25V21H6.75L17.81,9.93L14.06,6.18L3,17.25Z"/>
+            </svg>
+          </button>
+          <button class="delete-card-btn" ${deleteBtnData} title="Delete flashcard">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"/>
+            </svg>
+          </button>
+          <div class="flashcard-topic">${this.escapeHtml(card.topic)}${isCustomDeck ? ' <span style="font-size: 10px; opacity: 0.7;">(Custom)</span>' : ''}</div>
+          <div class="flashcard-question">${this.escapeHtml(card.question)}</div>
+          <div class="flashcard-answer">${this.escapeHtml(card.answer)}</div>
+          ${mediaContent}
+        </div>
+      `;
+    }).join('');
     
     container.innerHTML = `<div class="flashcard-grid">${flashcardHtml}</div>`;
     
@@ -482,6 +554,7 @@ Generate 10-15 flashcards. Begin output immediately with CSV data:`
   parseFlashcards() {
     const flashcards = [];
     
+    // Parse flashcards from chat exports
     this.flashcardData.forEach(data => {
       if (data.csvData) {
         // Try both \n and \\n for line splitting
@@ -496,9 +569,22 @@ Generate 10-15 flashcards. Begin output immediately with CSV data:`
             flashcards.push({
               topic: parts[0],
               question: parts[1],
-              answer: parts[2] // Use only the third part
+              answer: parts[2]
             });
           }
+        });
+      }
+    });
+    
+    // Parse flashcards from custom decks
+    this.customDecks.forEach(deck => {
+      if (deck.cards && Array.isArray(deck.cards)) {
+        deck.cards.forEach(card => {
+          flashcards.push({
+            topic: deck.name,
+            question: card.front,
+            answer: card.back
+          });
         });
       }
     });
@@ -509,9 +595,26 @@ Generate 10-15 flashcards. Begin output immediately with CSV data:`
   parseFlashcardsWithIndex() {
     const flashcards = [];
     
+    // Parse flashcards from chat exports
     this.flashcardData.forEach((data, chatIndex) => {
-      if (data.csvData) {
-        // Try both \n and \\n for line splitting
+      // Check if we have structured cards with media support
+      if (data.structuredCards && Array.isArray(data.structuredCards)) {
+        data.structuredCards.forEach((card, lineIndex) => {
+          flashcards.push({
+            topic: card.topic,
+            question: card.question,
+            answer: card.answer,
+            chatIndex: chatIndex,
+            lineIndex: lineIndex,
+            source: 'chat',
+            frontImage: card.frontImage,
+            frontAudio: card.frontAudio,
+            image: card.image,
+            audio: card.audio
+          });
+        });
+      } else if (data.csvData) {
+        // Fallback to CSV parsing for backward compatibility
         let lines = data.csvData.split('\n').filter(line => line.trim());
         if (lines.length <= 1) {
           lines = data.csvData.split('\\n').filter(line => line.trim());
@@ -523,11 +626,35 @@ Generate 10-15 flashcards. Begin output immediately with CSV data:`
             flashcards.push({
               topic: parts[0],
               question: parts[1],
-              answer: parts[2], // Use only the third part
+              answer: parts[2],
               chatIndex: chatIndex,
-              lineIndex: lineIndex
+              lineIndex: lineIndex,
+              source: 'chat'
             });
           }
+        });
+      }
+    });
+    
+    // Parse flashcards from custom decks
+    this.customDecks.forEach((deck, deckIndex) => {
+      if (deck.cards && Array.isArray(deck.cards)) {
+        deck.cards.forEach((card, cardIndex) => {
+          const flashcard = {
+            topic: deck.name,
+            question: card.front,
+            answer: card.back,
+            deckIndex: deckIndex,
+            cardIndex: cardIndex,
+            source: 'deck',
+            frontImage: card.frontImage,
+            frontAudio: card.frontAudio,
+            image: card.image,
+            audio: card.audio
+          };
+          
+          
+          flashcards.push(flashcard);
         });
       }
     });
@@ -544,14 +671,24 @@ Generate 10-15 flashcards. Begin output immediately with CSV data:`
         e.preventDefault();
         e.stopPropagation();
         
-        const chatIndex = parseInt(button.getAttribute('data-chat-index'));
-        const lineIndex = parseInt(button.getAttribute('data-line-index'));
+        const source = button.getAttribute('data-source');
         
-        console.log('Delete button clicked:', { chatIndex, lineIndex });
-        
-        // Show confirmation dialog
-        if (confirm('Are you sure you want to delete this flashcard?')) {
-          this.deleteFlashcard(chatIndex, lineIndex);
+        if (source === 'deck') {
+          const deckIndex = parseInt(button.getAttribute('data-deck-index'));
+          const cardIndex = parseInt(button.getAttribute('data-card-index'));
+          console.log('Delete deck card button clicked:', { deckIndex, cardIndex });
+          
+          if (confirm('Are you sure you want to delete this flashcard?')) {
+            this.deleteDeckCard(deckIndex, cardIndex);
+          }
+        } else {
+          const chatIndex = parseInt(button.getAttribute('data-chat-index'));
+          const lineIndex = parseInt(button.getAttribute('data-line-index'));
+          console.log('Delete chat card button clicked:', { chatIndex, lineIndex });
+          
+          if (confirm('Are you sure you want to delete this flashcard?')) {
+            this.deleteFlashcard(chatIndex, lineIndex);
+          }
         }
       });
     });
@@ -566,14 +703,55 @@ Generate 10-15 flashcards. Begin output immediately with CSV data:`
         e.preventDefault();
         e.stopPropagation();
         
-        const chatIndex = parseInt(button.getAttribute('data-chat-index'));
-        const lineIndex = parseInt(button.getAttribute('data-line-index'));
+        const source = button.getAttribute('data-source');
         
-        console.log('Edit button clicked:', { chatIndex, lineIndex });
-        
-        this.openEditModal(chatIndex, lineIndex);
+        if (source === 'deck') {
+          const deckIndex = parseInt(button.getAttribute('data-deck-index'));
+          const cardIndex = parseInt(button.getAttribute('data-card-index'));
+          console.log('Edit deck card button clicked:', { deckIndex, cardIndex });
+          
+          this.openEditModalForDeckCard(deckIndex, cardIndex);
+        } else {
+          const chatIndex = parseInt(button.getAttribute('data-chat-index'));
+          const lineIndex = parseInt(button.getAttribute('data-line-index'));
+          console.log('Edit chat card button clicked:', { chatIndex, lineIndex });
+          
+          this.openEditModal(chatIndex, lineIndex);
+        }
       });
     });
+  }
+  
+  setupShowAllFlashcardsButton() {
+    const showAllButton = document.querySelector('.show-all-flashcards-btn');
+    if (showAllButton) {
+      // Remove any existing event listeners
+      showAllButton.replaceWith(showAllButton.cloneNode(true));
+      const newButton = document.querySelector('.show-all-flashcards-btn');
+      
+      newButton.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('Show All Flashcards button clicked');
+        this.showAllFlashcards();
+      });
+      
+      console.log('Show All Flashcards button event listener attached');
+    } else {
+      console.warn('Show All Flashcards button not found');
+    }
+    
+    // Also set up event delegation as backup
+    document.removeEventListener('click', this.showAllFlashcardsHandler);
+    this.showAllFlashcardsHandler = (e) => {
+      if (e.target.matches('.show-all-flashcards-btn') || e.target.closest('.show-all-flashcards-btn')) {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('Show All Flashcards button clicked via delegation');
+        this.showAllFlashcards();
+      }
+    };
+    document.addEventListener('click', this.showAllFlashcardsHandler);
   }
   
   updateCSVPreview() {
@@ -674,16 +852,73 @@ Generate 10-15 flashcards. Begin output immediately with CSV data:`
   
   async clearAllFlashcards() {
     try {
-      await this.setStorageData({ flashcardData: [] });
+      // Clear all flashcard-related data
+      await this.setStorageData({ 
+        flashcardData: [],
+        customDecks: [],
+        structuredCards: []
+      });
       this.flashcardData = [];
+      this.customDecks = [];
       this.loadData();
-      this.showAlert('All flashcards cleared successfully', 'success');
+      this.showAlert('All flashcards and custom decks cleared successfully', 'success');
     } catch (error) {
       console.error('Error clearing flashcards:', error);
       this.showAlert('Error clearing flashcards', 'error');
     }
   }
   
+  async deleteDeckCard(deckIndex, cardIndex) {
+    console.log('deleteDeckCard called with:', { deckIndex, cardIndex });
+    console.log('Current customDecks:', this.customDecks);
+    
+    try {
+      if (deckIndex >= 0 && deckIndex < this.customDecks.length) {
+        const deck = this.customDecks[deckIndex];
+        console.log('Deck data:', deck);
+        
+        if (deck.cards && Array.isArray(deck.cards)) {
+          console.log('Cards before deletion:', deck.cards);
+          
+          if (cardIndex >= 0 && cardIndex < deck.cards.length) {
+            console.log('Deleting card:', deck.cards[cardIndex]);
+            
+            // Remove the specific card
+            deck.cards.splice(cardIndex, 1);
+            
+            console.log('Cards after deletion:', deck.cards);
+            
+            // If no cards left, remove the entire deck
+            if (deck.cards.length === 0) {
+              console.log('No cards left, removing entire deck');
+              this.customDecks.splice(deckIndex, 1);
+            }
+            
+            // Save updated data
+            console.log('Saving updated customDecks:', this.customDecks);
+            await this.setStorageData({ customDecks: this.customDecks });
+            
+            // Reload the display
+            this.loadData();
+            this.showAlert('Flashcard deleted successfully', 'success');
+          } else {
+            console.error('Invalid card index:', cardIndex, 'for cards:', deck.cards);
+            this.showAlert('Invalid flashcard index', 'error');
+          }
+        } else {
+          console.error('No cards found for deck:', deckIndex);
+          this.showAlert('No flashcard data found', 'error');
+        }
+      } else {
+        console.error('Invalid deck index:', deckIndex, 'for customDecks length:', this.customDecks.length);
+        this.showAlert('Invalid deck index', 'error');
+      }
+    } catch (error) {
+      console.error('Error deleting deck card:', error);
+      this.showAlert('Error deleting flashcard', 'error');
+    }
+  }
+
   async deleteFlashcard(chatIndex, lineIndex) {
     console.log('deleteFlashcard called with:', { chatIndex, lineIndex });
     console.log('Current flashcardData:', this.flashcardData);
@@ -744,7 +979,7 @@ Generate 10-15 flashcards. Begin output immediately with CSV data:`
   }
   
   openEditModal(chatIndex, lineIndex) {
-    console.log('Opening edit modal for:', { chatIndex, lineIndex });
+    console.log('Opening edit modal for chat card:', { chatIndex, lineIndex });
     
     try {
       // Get the flashcard data
@@ -755,12 +990,25 @@ Generate 10-15 flashcards. Begin output immediately with CSV data:`
       }
       
       // Store the current edit context
-      this.currentEditContext = { chatIndex, lineIndex, originalTopic: flashcard.topic };
+      this.currentEditContext = { 
+        type: 'chat',
+        chatIndex, 
+        lineIndex, 
+        originalTopic: flashcard.topic 
+      };
+      
+      // Show topic field for chat cards
+      document.getElementById('editTopicGroup').style.display = 'block';
       
       // Populate the form
       document.getElementById('editTopic').value = flashcard.topic;
       document.getElementById('editQuestion').value = flashcard.question;
       document.getElementById('editAnswer').value = flashcard.answer;
+      
+      // Clear and setup media fields for chat cards too
+      this.clearEditMediaFields();
+      // Note: Chat cards don't have existing media, but we can add media through editing
+      this.populateEditMediaFields(flashcard);
       
       // Show the modal
       document.getElementById('editModal').classList.add('active');
@@ -770,6 +1018,47 @@ Generate 10-15 flashcards. Begin output immediately with CSV data:`
       
     } catch (error) {
       console.error('Error opening edit modal:', error);
+      this.showAlert('Error opening edit modal', 'error');
+    }
+  }
+
+  openEditModalForDeckCard(deckIndex, cardIndex) {
+    console.log('Opening edit modal for deck card:', { deckIndex, cardIndex });
+    
+    try {
+      // Get the deck card data
+      const card = this.getDeckCardByIndex(deckIndex, cardIndex);
+      if (!card) {
+        this.showAlert('Deck card not found', 'error');
+        return;
+      }
+      
+      // Store the current edit context
+      this.currentEditContext = { 
+        type: 'deck',
+        deckIndex, 
+        cardIndex 
+      };
+      
+      // Hide topic field for deck cards (deck name is used as topic)
+      document.getElementById('editTopicGroup').style.display = 'none';
+      
+      // Populate the form
+      document.getElementById('editQuestion').value = card.front || '';
+      document.getElementById('editAnswer').value = card.back || '';
+      
+      // Clear and setup media fields
+      this.clearEditMediaFields();
+      this.populateEditMediaFields(card);
+      
+      // Show the modal
+      document.getElementById('editModal').classList.add('active');
+      
+      // Set up modal event listeners if not already set up
+      this.setupEditModalListeners();
+      
+    } catch (error) {
+      console.error('Error opening edit modal for deck card:', error);
       this.showAlert('Error opening edit modal', 'error');
     }
   }
@@ -807,11 +1096,125 @@ Generate 10-15 flashcards. Begin output immediately with CSV data:`
       }
     });
     
+    // File upload handlers
+    this.setupEditFileUploadHandlers();
+    
     // Form submission
     form.addEventListener('submit', (e) => {
       e.preventDefault();
       this.saveFlashcardEdit();
     });
+  }
+
+  setupEditFileUploadHandlers() {
+    // Front image upload
+    document.getElementById('editFrontImage').addEventListener('change', (e) => {
+      this.handleEditFileUpload(e, 'editFrontImage', 'Front Image');
+    });
+    
+    // Front audio upload
+    document.getElementById('editFrontAudio').addEventListener('change', (e) => {
+      this.handleEditFileUpload(e, 'editFrontAudio', 'Front Audio');
+    });
+    
+    // Back image upload
+    document.getElementById('editBackImage').addEventListener('change', (e) => {
+      this.handleEditFileUpload(e, 'editBackImage', 'Back Image');
+    });
+    
+    // Back audio upload
+    document.getElementById('editBackAudio').addEventListener('change', (e) => {
+      this.handleEditFileUpload(e, 'editBackAudio', 'Back Audio');
+    });
+  }
+
+  handleEditFileUpload(event, inputId, defaultText) {
+    const file = event.target.files[0];
+    const label = document.querySelector(`label[for="${inputId}"]`);
+    
+    if (file && label) {
+      // Update label to show file selected
+      label.innerHTML = `
+        <svg class="file-upload-icon" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M9,16.17L4.83,12L3.41,13.41L9,19L21,7L19.59,5.59L9,16.17Z"/>
+        </svg>
+        ${file.name}
+      `;
+      label.style.color = '#10a37f';
+      
+      // Show preview based on file type
+      this.showEditFilePreview(file, inputId);
+    } else if (label) {
+      this.resetFileUploadLabel(inputId, defaultText);
+      this.clearEditFilePreview(inputId);
+    }
+  }
+  
+  showEditFilePreview(file, inputId) {
+    const fileReader = new FileReader();
+    const isImage = file.type.startsWith('image/');
+    const isAudio = file.type.startsWith('audio/');
+    
+    // Determine preview container based on input ID
+    let previewContainer;
+    if (inputId.includes('Front')) {
+      previewContainer = document.getElementById('editFrontMediaPreview');
+    } else {
+      previewContainer = document.getElementById('editBackMediaPreview');
+    }
+    
+    if (!previewContainer) return;
+    
+    fileReader.onload = (e) => {
+      const result = e.target.result;
+      
+      if (isImage) {
+        const previewDiv = document.createElement('div');
+        previewDiv.className = 'edit-file-preview';
+        previewDiv.style.marginTop = '8px';
+        previewDiv.innerHTML = `
+          <small style="color: #6b7280;">New ${inputId.includes('Front') ? 'front' : 'back'} image:</small><br>
+          <img src="${result}" alt="Preview" style="max-width: 100px; max-height: 100px; object-fit: cover; border-radius: 4px; border: 2px solid #10a37f;">
+        `;
+        
+        // Clear any existing preview for this input and add new one
+        this.clearEditFilePreview(inputId);
+        previewContainer.appendChild(previewDiv);
+        
+      } else if (isAudio) {
+        const previewDiv = document.createElement('div');
+        previewDiv.className = 'edit-file-preview';
+        previewDiv.style.marginTop = '8px';
+        previewDiv.innerHTML = `
+          <small style="color: #6b7280;">New ${inputId.includes('Front') ? 'front' : 'back'} audio:</small><br>
+          <audio controls style="width: 100%; max-width: 200px; border: 2px solid #10a37f; border-radius: 4px;">
+            <source src="${result}" type="${file.type}">
+          </audio>
+        `;
+        
+        // Clear any existing preview for this input and add new one
+        this.clearEditFilePreview(inputId);
+        previewContainer.appendChild(previewDiv);
+      }
+    };
+    
+    fileReader.readAsDataURL(file);
+  }
+  
+  clearEditFilePreview(inputId) {
+    // Find the preview container
+    let previewContainer;
+    if (inputId.includes('Front')) {
+      previewContainer = document.getElementById('editFrontMediaPreview');
+    } else {
+      previewContainer = document.getElementById('editBackMediaPreview');
+    }
+    
+    if (previewContainer) {
+      // Remove only the new preview elements, keep existing media previews
+      const newPreviews = previewContainer.querySelectorAll('.edit-file-preview');
+      newPreviews.forEach(preview => preview.remove());
+    }
   }
   
   getFlashcardByIndex(chatIndex, lineIndex) {
@@ -834,7 +1237,7 @@ Generate 10-15 flashcards. Begin output immediately with CSV data:`
               return {
                 topic: parts[0],
                 question: parts[1],
-                answer: parts[2] // Use only the third part
+                answer: parts[2]
               };
             }
           }
@@ -846,6 +1249,96 @@ Generate 10-15 flashcards. Begin output immediately with CSV data:`
       return null;
     }
   }
+
+  getDeckCardByIndex(deckIndex, cardIndex) {
+    try {
+      if (deckIndex >= 0 && deckIndex < this.customDecks.length) {
+        const deck = this.customDecks[deckIndex];
+        
+        if (deck.cards && Array.isArray(deck.cards)) {
+          if (cardIndex >= 0 && cardIndex < deck.cards.length) {
+            return deck.cards[cardIndex];
+          }
+        }
+      }
+      return null;
+    } catch (error) {
+      console.error('Error getting deck card by index:', error);
+      return null;
+    }
+  }
+
+  clearEditMediaFields() {
+    // Clear file inputs
+    document.getElementById('editFrontImage').value = '';
+    document.getElementById('editFrontAudio').value = '';
+    document.getElementById('editBackImage').value = '';
+    document.getElementById('editBackAudio').value = '';
+    
+    // Reset labels
+    this.resetFileUploadLabel('editFrontImage', 'Front Image');
+    this.resetFileUploadLabel('editFrontAudio', 'Front Audio');
+    this.resetFileUploadLabel('editBackImage', 'Back Image');
+    this.resetFileUploadLabel('editBackAudio', 'Back Audio');
+    
+    // Clear previews
+    document.getElementById('editFrontMediaPreview').innerHTML = '';
+    document.getElementById('editBackMediaPreview').innerHTML = '';
+  }
+
+  populateEditMediaFields(card) {
+    // Show existing media in previews
+    if (card.frontImage) {
+      document.getElementById('editFrontMediaPreview').innerHTML = `
+        <div style="margin-top: 4px;">
+          <small style="color: #6b7280;">Current front image:</small><br>
+          <img src="${card.frontImage.data}" alt="Front image" style="max-width: 100px; max-height: 100px; object-fit: cover; border-radius: 4px;">
+        </div>
+      `;
+    }
+    
+    if (card.frontAudio) {
+      document.getElementById('editFrontMediaPreview').innerHTML += `
+        <div style="margin-top: 4px;">
+          <small style="color: #6b7280;">Current front audio:</small><br>
+          <audio controls style="width: 100%; max-width: 200px;">
+            <source src="${card.frontAudio.data}" type="${card.frontAudio.type}">
+          </audio>
+        </div>
+      `;
+    }
+    
+    if (card.image) {
+      document.getElementById('editBackMediaPreview').innerHTML = `
+        <div style="margin-top: 4px;">
+          <small style="color: #6b7280;">Current back image:</small><br>
+          <img src="${card.image.data}" alt="Back image" style="max-width: 100px; max-height: 100px; object-fit: cover; border-radius: 4px;">
+        </div>
+      `;
+    }
+    
+    if (card.audio) {
+      document.getElementById('editBackMediaPreview').innerHTML += `
+        <div style="margin-top: 4px;">
+          <small style="color: #6b7280;">Current back audio:</small><br>
+          <audio controls style="width: 100%; max-width: 200px;">
+            <source src="${card.audio.data}" type="${card.audio.type}">
+          </audio>
+        </div>
+      `;
+    }
+  }
+
+  resetFileUploadLabel(inputId, defaultText) {
+    const label = document.querySelector(`label[for="${inputId}"]`);
+    if (label) {
+      const icon = label.querySelector('.file-upload-icon');
+      label.innerHTML = '';
+      if (icon) label.appendChild(icon.cloneNode(true));
+      label.appendChild(document.createTextNode(defaultText));
+      label.style.color = '#6b7280';
+    }
+  }
   
   async saveFlashcardEdit() {
     if (!this.currentEditContext) {
@@ -854,43 +1347,10 @@ Generate 10-15 flashcards. Begin output immediately with CSV data:`
     }
     
     try {
-      const { chatIndex, lineIndex, originalTopic } = this.currentEditContext;
-      
-      // Get form values
-      const newTopic = document.getElementById('editTopic').value.trim();
-      const newQuestion = document.getElementById('editQuestion').value.trim();
-      const newAnswer = document.getElementById('editAnswer').value.trim();
-      
-      // Validate input
-      if (!newTopic || !newQuestion || !newAnswer) {
-        this.showAlert('All fields are required', 'error');
-        return;
-      }
-      
-      // Update the flashcard data
-      const success = await this.updateFlashcard(chatIndex, lineIndex, newTopic, newQuestion, newAnswer);
-      
-      if (success) {
-        // Close modal
-        document.getElementById('editModal').classList.remove('active');
-        this.currentEditContext = null;
-        
-        // Check if topic changed
-        const topicChanged = originalTopic !== newTopic;
-        
-        // Reload data and update display
-        await this.loadData();
-        
-        if (topicChanged) {
-          // If topic changed, reload topics and reset to "All Topics" view
-          this.loadTopics();
-          this.selectTopic('all');
-        } else {
-          // If topic didn't change, maintain current topic view
-          this.loadFlashcardsByTopic(this.selectedTopic);
-        }
-        
-        this.showAlert('Flashcard updated successfully', 'success');
+      if (this.currentEditContext.type === 'chat') {
+        await this.saveChatCardEdit();
+      } else if (this.currentEditContext.type === 'deck') {
+        await this.saveDeckCardEdit();
       }
       
     } catch (error) {
@@ -898,7 +1358,230 @@ Generate 10-15 flashcards. Begin output immediately with CSV data:`
       this.showAlert('Error saving changes', 'error');
     }
   }
+
+  async saveChatCardEdit() {
+    const { chatIndex, lineIndex, originalTopic } = this.currentEditContext;
+    
+    // Get form values
+    const newTopic = document.getElementById('editTopic').value.trim();
+    const newQuestion = document.getElementById('editQuestion').value.trim();
+    const newAnswer = document.getElementById('editAnswer').value.trim();
+    
+    // Validate input
+    if (!newTopic || !newQuestion || !newAnswer) {
+      this.showAlert('All fields are required', 'error');
+      return;
+    }
+    
+    // Get current chat flashcard data to preserve existing media
+    const currentCard = this.getFlashcardByIndex(chatIndex, lineIndex);
+    if (!currentCard) {
+      this.showAlert('Card not found', 'error');
+      return;
+    }
+    
+    // Process media files (only updates if new files are selected)
+    const newMediaData = await this.processEditMediaFiles();
+    
+    // Merge with existing media data (chat cards may not have existing media)
+    const mediaData = {
+      frontImage: newMediaData.frontImage || currentCard.frontImage,
+      frontAudio: newMediaData.frontAudio || currentCard.frontAudio,
+      image: newMediaData.image || currentCard.image,
+      audio: newMediaData.audio || currentCard.audio
+    };
+    
+    console.log('Chat card final media data for save:', mediaData);
+    
+    // Update the flashcard data with media support
+    const success = await this.updateFlashcardWithMedia(chatIndex, lineIndex, newTopic, newQuestion, newAnswer, mediaData);
+    
+    if (success) {
+      // Close modal
+      document.getElementById('editModal').classList.remove('active');
+      this.currentEditContext = null;
+      
+      // Check if topic changed
+      const topicChanged = originalTopic !== newTopic;
+      
+      // Reload data and update display
+      await this.loadData();
+      
+      if (topicChanged) {
+        this.loadTopics();
+        this.selectTopic('all');
+      } else {
+        this.loadFlashcardsByTopic(this.selectedTopic);
+      }
+      
+      this.showAlert('Flashcard updated successfully', 'success');
+    }
+  }
+
+  async saveDeckCardEdit() {
+    const { deckIndex, cardIndex } = this.currentEditContext;
+    
+    // Get form values
+    const newFront = document.getElementById('editQuestion').value.trim();
+    const newBack = document.getElementById('editAnswer').value.trim();
+    
+    // Validate input
+    if (!newFront || !newBack) {
+      this.showAlert('Front and back text are required', 'error');
+      return;
+    }
+    
+    // Get the current card to preserve existing media
+    const currentCard = this.getDeckCardByIndex(deckIndex, cardIndex);
+    if (!currentCard) {
+      this.showAlert('Card not found', 'error');
+      return;
+    }
+    
+    // Process media files (only updates if new files are selected)
+    const newMediaData = await this.processEditMediaFiles();
+    
+    // Merge with existing media data
+    const mediaData = {
+      frontImage: newMediaData.frontImage || currentCard.frontImage,
+      frontAudio: newMediaData.frontAudio || currentCard.frontAudio,
+      image: newMediaData.image || currentCard.image,
+      audio: newMediaData.audio || currentCard.audio
+    };
+    
+    console.log('Final media data for save:', mediaData);
+    
+    // Update the deck card data
+    const success = await this.updateDeckCard(deckIndex, cardIndex, newFront, newBack, mediaData);
+    
+    if (success) {
+      // Close modal
+      document.getElementById('editModal').classList.remove('active');
+      this.currentEditContext = null;
+      
+      // Reload data and update display
+      await this.loadData();
+      console.log('Data reloaded, custom decks:', this.customDecks);
+      
+      // Force rebuild of topic groups
+      this.loadTopics();
+      this.loadFlashcardsByTopic(this.selectedTopic);
+      
+      this.showAlert('Deck card updated successfully', 'success');
+    }
+  }
+
+  async processEditMediaFiles() {
+    const frontImageFile = document.getElementById('editFrontImage').files[0];
+    const frontAudioFile = document.getElementById('editFrontAudio').files[0];
+    const backImageFile = document.getElementById('editBackImage').files[0];
+    const backAudioFile = document.getElementById('editBackAudio').files[0];
+    
+    console.log('Processing edit media files:', {
+      frontImageFile: frontImageFile ? frontImageFile.name : 'none',
+      frontAudioFile: frontAudioFile ? frontAudioFile.name : 'none',
+      backImageFile: backImageFile ? backImageFile.name : 'none',
+      backAudioFile: backAudioFile ? backAudioFile.name : 'none'
+    });
+    
+    const mediaData = {};
+    
+    if (frontImageFile) {
+      mediaData.frontImage = await this.fileToBase64(frontImageFile);
+      console.log('Processed front image:', mediaData.frontImage.name);
+    }
+    
+    if (frontAudioFile) {
+      mediaData.frontAudio = await this.fileToBase64(frontAudioFile);
+      console.log('Processed front audio:', mediaData.frontAudio.name);
+    }
+    
+    if (backImageFile) {
+      mediaData.image = await this.fileToBase64(backImageFile);
+      console.log('Processed back image:', mediaData.image.name);
+    }
+    
+    if (backAudioFile) {
+      mediaData.audio = await this.fileToBase64(backAudioFile);
+      console.log('Processed back audio:', mediaData.audio.name);
+    }
+    
+    console.log('Final media data:', Object.keys(mediaData));
+    return mediaData;
+  }
+
+  fileToBase64(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        resolve({
+          name: file.name,
+          type: file.type,
+          data: reader.result
+        });
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
   
+  async updateDeckCard(deckIndex, cardIndex, newFront, newBack, mediaData) {
+    console.log('Updating deck card:', { deckIndex, cardIndex, newFront, newBack, mediaData });
+    
+    try {
+      if (deckIndex >= 0 && deckIndex < this.customDecks.length) {
+        const deck = this.customDecks[deckIndex];
+        
+        if (deck.cards && Array.isArray(deck.cards)) {
+          if (cardIndex >= 0 && cardIndex < deck.cards.length) {
+            const card = deck.cards[cardIndex];
+            
+            console.log('Before update - card data:', {
+              front: card.front,
+              back: card.back,
+              frontImage: card.frontImage ? 'present' : 'none',
+              frontAudio: card.frontAudio ? 'present' : 'none',
+              image: card.image ? 'present' : 'none',
+              audio: card.audio ? 'present' : 'none'
+            });
+            
+            // Update card data
+            card.front = newFront;
+            card.back = newBack;
+            
+            // Update all media data (includes existing media preservation)
+            card.frontImage = mediaData.frontImage;
+            card.frontAudio = mediaData.frontAudio;
+            card.image = mediaData.image;
+            card.audio = mediaData.audio;
+            
+            console.log('After update - card data:', {
+              front: card.front,
+              back: card.back,
+              frontImage: card.frontImage ? 'present' : 'none',
+              frontAudio: card.frontAudio ? 'present' : 'none',
+              image: card.image ? 'present' : 'none',
+              audio: card.audio ? 'present' : 'none'
+            });
+            
+            // Save updated data
+            await this.setStorageData({ customDecks: this.customDecks });
+            
+            console.log('Deck card updated successfully and saved to storage');
+            return true;
+          }
+        }
+      }
+      
+      console.error('Invalid deck card indices or data structure');
+      return false;
+      
+    } catch (error) {
+      console.error('Error updating deck card:', error);
+      return false;
+    }
+  }
+
   async updateFlashcard(chatIndex, lineIndex, newTopic, newQuestion, newAnswer) {
     console.log('Updating flashcard:', { chatIndex, lineIndex, newTopic, newQuestion, newAnswer });
     
@@ -941,6 +1624,110 @@ Generate 10-15 flashcards. Begin output immediately with CSV data:`
     }
   }
   
+  async updateFlashcardWithMedia(chatIndex, lineIndex, newTopic, newQuestion, newAnswer, mediaData) {
+    console.log('Updating chat flashcard with media:', { chatIndex, lineIndex, newTopic, newQuestion, newAnswer, mediaData });
+    
+    try {
+      if (chatIndex >= 0 && chatIndex < this.flashcardData.length) {
+        const chatData = this.flashcardData[chatIndex];
+        
+        // Check if this chat data already has a structured cards array
+        if (!chatData.structuredCards) {
+          // Convert CSV data to structured format
+          chatData.structuredCards = this.convertCsvToStructuredCards(chatData.csvData);
+        }
+        
+        // Update the specific card in the structured format
+        if (lineIndex >= 0 && lineIndex < chatData.structuredCards.length) {
+          const card = chatData.structuredCards[lineIndex];
+          
+          console.log('Before update - chat card data:', {
+            topic: card.topic,
+            question: card.question,
+            answer: card.answer,
+            frontImage: card.frontImage ? 'present' : 'none',
+            frontAudio: card.frontAudio ? 'present' : 'none',
+            image: card.image ? 'present' : 'none',
+            audio: card.audio ? 'present' : 'none'
+          });
+          
+          // Update card data
+          card.topic = newTopic;
+          card.question = newQuestion;
+          card.answer = newAnswer;
+          
+          // Update all media data
+          card.frontImage = mediaData.frontImage;
+          card.frontAudio = mediaData.frontAudio;
+          card.image = mediaData.image;
+          card.audio = mediaData.audio;
+          
+          console.log('After update - chat card data:', {
+            topic: card.topic,
+            question: card.question,
+            answer: card.answer,
+            frontImage: card.frontImage ? 'present' : 'none',
+            frontAudio: card.frontAudio ? 'present' : 'none',
+            image: card.image ? 'present' : 'none',
+            audio: card.audio ? 'present' : 'none'
+          });
+          
+          // Update the CSV data to keep backward compatibility
+          chatData.csvData = this.convertStructuredCardsToCsv(chatData.structuredCards);
+          
+          // Save updated data
+          await this.setStorageData({ flashcardData: this.flashcardData });
+          
+          console.log('Chat flashcard with media updated successfully and saved to storage');
+          return true;
+        }
+      }
+      
+      console.error('Invalid chat flashcard indices or data structure');
+      return false;
+      
+    } catch (error) {
+      console.error('Error updating chat flashcard with media:', error);
+      return false;
+    }
+  }
+  
+  convertCsvToStructuredCards(csvData) {
+    const cards = [];
+    
+    if (!csvData) return cards;
+    
+    // Try both \n and \\n for line splitting
+    let lines = csvData.split('\n').filter(line => line.trim());
+    if (lines.length <= 1) {
+      lines = csvData.split('\\n').filter(line => line.trim());
+    }
+    
+    lines.forEach(line => {
+      const parts = this.parseCSVLine(line);
+      if (parts.length >= 3) {
+        cards.push({
+          topic: parts[0],
+          question: parts[1],
+          answer: parts[2],
+          frontImage: null,
+          frontAudio: null,
+          image: null,
+          audio: null
+        });
+      }
+    });
+    
+    return cards;
+  }
+  
+  convertStructuredCardsToCsv(structuredCards) {
+    return structuredCards.map(card => {
+      // Create CSV line with properly quoted text (ignore media for CSV export)
+      return `"${card.topic.replace(/"/g, '""')}","${card.question.replace(/"/g, '""')}","${card.answer.replace(/"/g, '""')}"`;
+    }).join('\n');
+  }
+  
   exportCSV() {
     if (this.flashcardData.length === 0) {
       this.showAlert('No flashcards to export', 'error');
@@ -975,8 +1762,8 @@ Generate 10-15 flashcards. Begin output immediately with CSV data:`
       // Initialize SQL.js
       await generator.initializeSQL();
       
-      // Parse flashcard data
-      const flashcards = this.parseFlashcards();
+      // Parse flashcard data with media support
+      const flashcards = this.parseFlashcardsWithIndex();
       
       // Validate flashcard data
       const validation = generator.validateFlashcardData(flashcards);
@@ -1046,8 +1833,8 @@ Generate 10-15 flashcards. Begin output immediately with CSV data:`
       await generator.initializeSQL();
       console.log('SQL.js initialized successfully for Anki addon export');
       
-      // Parse flashcard data
-      const flashcards = this.parseFlashcards();
+      // Parse flashcard data with media support
+      const flashcards = this.parseFlashcardsWithIndex();
       console.log('Parsed flashcards for Anki addon:', flashcards.length);
       
       // Validate flashcard data
@@ -1453,4 +2240,16 @@ let configManager;
 
 document.addEventListener('DOMContentLoaded', () => {
   configManager = new ConfigManager();
+  
+  // Make configManager globally accessible for debugging and compatibility
+  window.configManager = configManager;
+  
+  // Add global backup function as fallback
+  window.showAllFlashcards = () => {
+    if (configManager) {
+      configManager.showAllFlashcards();
+    } else {
+      console.error('ConfigManager not initialized');
+    }
+  };
 });

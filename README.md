@@ -1,6 +1,8 @@
+<img src="./assets/logo.png"  width="240" align="right" style="margin-top:-70px">
 # Chat to Anki Flashcards 🧠💡
 
 Convert AI conversations from **ChatGPT**, **Claude**, and **Perplexity** into Anki flashcards automatically. **NO API KEYS REQUIRED** for seamless experience.
+
 
 ![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/aqua.png)
 

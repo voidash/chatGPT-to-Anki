@@ -67,13 +67,7 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
       chrome.storage.local.set({ contextData: currentContext }, () => {
         console.log('Context item added:', contextItem);
         
-        // Show notification
-        chrome.notifications.create({
-          type: 'basic',
-          iconUrl: 'icon.png',
-          title: 'Context Added',
-          message: `Added "${selectedText.substring(0, 50)}..." to context`
-        });
+        // Context added successfully - notification permission removed
       });
     });
   }
@@ -152,13 +146,14 @@ async function handleContextFlashcardGeneration(request, sendResponse) {
     const chatGPTTab = await chrome.tabs.create({ url: 'https://chatgpt.com' });
     
     // Wait for the tab to load and inject the prompt with full automation
+    // Use shorter delay and add page load detection
     setTimeout(() => {
       chrome.scripting.executeScript({
         target: { tabId: chatGPTTab.id },
         func: injectAndProcessContextPrompt,
         args: [finalPrompt]
       });
-    }, 3000);
+    }, 1500);
     
     sendResponse({ success: true });
     
@@ -309,8 +304,8 @@ function injectAndProcessContextPrompt(prompt) {
   async function sendPrompt(inputBox) {
     console.log('Looking for send button...');
     
-    // Wait a moment for the input to be processed
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    // Wait a short moment for the input to be processed
+    await new Promise(resolve => setTimeout(resolve, 500));
     
     // Try the specific button ID you found first
     let sendButton = document.querySelector('#composer-submit-button');
@@ -425,8 +420,8 @@ function injectAndProcessContextPrompt(prompt) {
         }
       };
       
-      // Start checking after initial delay
-      setTimeout(checkForResponse, 2000);
+      // Start checking after shorter initial delay
+      setTimeout(checkForResponse, 1000);
     });
   }
 
@@ -480,10 +475,23 @@ function injectAndProcessContextPrompt(prompt) {
     return csvLines.length > 0 ? csvLines.join('\n') : null;
   }
   
-  // Wait for page to be fully loaded
-  setTimeout(async () => {
+  // Wait for page to be ready and start automation
+  function waitForPageReady() {
+    // Check if the page is ready by looking for key elements
+    if (document.readyState === 'complete' && 
+        (document.querySelector('[data-testid="prompt-textarea"]') || 
+         document.querySelector('textarea[placeholder*="message"]') ||
+         document.querySelector('#prompt-textarea'))) {
+      startAutomation();
+    } else {
+      // Retry every 100ms until ready, max 30 seconds
+      setTimeout(waitForPageReady, 100);
+    }
+  }
+  
+  async function startAutomation() {
     try {
-      console.log('Page loaded, starting automation...');
+      console.log('Page ready, starting automation...');
       
       // Show processing indicator
       showProcessingIndicator();
@@ -567,7 +575,10 @@ function injectAndProcessContextPrompt(prompt) {
       console.error('Error in context prompt processing:', error);
       alert('Error processing context: ' + error.message);
     }
-  }, 4000); // Increased wait time
+  }
+  
+  // Start the page ready check immediately
+  waitForPageReady();
 }
 
 // All helper functions are now included within the main injection function above
@@ -607,13 +618,7 @@ async function handleStoreContextFlashcards(request, sendResponse) {
           console.log('Context data cleared after processing');
         });
         
-        // Show success notification
-        chrome.notifications.create({
-          type: 'basic',
-          iconUrl: 'icon.png',
-          title: 'Flashcards Generated!',
-          message: `Created ${flashcardEntry.flashcardCount} flashcards from your context. Check the configuration page to review and export them.`
-        });
+        // Flashcards generated successfully - notification permission removed
         
         sendResponse({ success: true });
       });

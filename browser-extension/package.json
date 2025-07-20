@@ -7,7 +7,7 @@
     "build": "npm run copy-deps",
     "copy-deps": "cp node_modules/genanki/dist/genanki.min.js genanki-lib.js",
     "dev": "npm run copy-deps && echo 'Extension ready for development'",
-    "package": "zip -r chat-to-flashcards.zip . -x node_modules/\\* .git/\\* *.md package*.json"
+    "package-chrome": "zip -r chat-to-flashcards.zip . -x *.md package*.json *firefox*"
   },
   "keywords": [
     "chrome-extension",
