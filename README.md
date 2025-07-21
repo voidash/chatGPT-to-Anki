@@ -78,17 +78,6 @@ The system consists of two components working together:
 5. Restart Anki (Important!)
 ```
 
-### Start Converting
-**Chat Mode:**
-- Navigate to ChatGPT/Claude/Perplexity
-- Click "Export to Chat" button or extension popup
-- Review and export flashcards
-
-**Context Mode:**
-- Right-click any text → "Add to context for Anki Flashcards"
-- Click "Generate flashcards" in extension popup
-- Review and export flashcards
-
 ![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/aqua.png)
 
 ## Supported Platforms 🌐
@@ -103,10 +92,8 @@ The system consists of two components working together:
 
 For detailed instructions and usage guides:
 
-- **[Complete Documentation](docs/)** - Full documentation site with step-by-step guides
-- **[Browser Extension Guide](docs/docs/browser-extension.md)** - Detailed extension setup, chat mode, and context mode usage
-- **[Anki Addon Guide](docs/docs/anki-addon.md)** - Addon installation, configuration, and integration
-- **[Getting Started](docs/docs/intro.md)** - Quick overview and component explanations
+- **[Complete Documentation](https://thapa-ashish.com.np/chatGPT-to-Anki/)** - Full documentation site with step-by-step guides
+
 
 ![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/aqua.png)
 
